@@ -19,14 +19,14 @@ print("Imports done...")
 
 # LOAD MODEL
 ############
-model = load_model('/bph/puredata1/bioinfdata/user/butjos/work/keras-models/omnisphero-cnn/neuron_cnn_excel_64x_unbalanced_histAdjusted_batch_norm_simple_MODEL.h5')
+model = load_model(#TODO)
 
 print("Loaded model...")
 
 # MAIN LOOP
 ###########
 
-path = '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/wholeWell/neuron/'
+path = #TODO
 
 #construct directory walker
 dir_list = [x[0] for x in os.walk(path)]

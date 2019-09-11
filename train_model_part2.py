@@ -1,9 +1,3 @@
-'''Train a CNN to predict binary decisions on Omnisphero data.
-Can be used for either neuron or oligo detection.
-
-JOSHUA BUTKE, SEPTEMBER 2019
-'''
-
 # IMPORTS
 #########
 import numpy as np
@@ -25,72 +19,19 @@ os.environ["CUDA_VISIBLE_DEVICES"]="1"
 import sys
 sys.path.append('/bph/puredata1/bioinfdata/user/butjos/work/code/misc')
 
-import misc_omnisphero as misc
+#Fetching temp data
+data = np.load('/bph/puredata4/bioinfdata/work/omnisphero/CNN/temp/temp2.npz')
+X = data.f.arr_0
+y = data.f.arr_1
+data.close()
 
-# TRAINING DATA
-###############
-
-# =========== List of all available neuron experiments on SAS15 ============================================================================
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS81_trainingData_neuron/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/FJK125_trainingData_neuron/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/FJK130_trainingData_neuron/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK96_trainingData_neuron/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS79_BIS-I_NPC2-5_062_trainingData_neuron/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK122_trainingData_neuron/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/EKB5_trainingData_neuron/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ESM9_trainingData_neuron/'
-
-# =========== List of all available oligo experiments on SAS15 ============================================================================
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS81_trainingData_oligo/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS79_trainingData_oligo/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK122_trainingData_oligo/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK95_trainingData_oligo/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK153_trainingData_oligo/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK155_trainingData_oligo/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK156_trainingData_oligo/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/EKB5_trainingData_oligo/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ESM9_trainingData_oligo/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ESM10_trainingData_oligo/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/MP70_trainingData_oligo/'
-
-path_list = [
-        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS81_trainingData_neuron/',
-        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/FJK125_trainingData_neuron/',
-        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/FJK130_trainingData_neuron/',
-        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK96_trainingData_neuron/',
-        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS79_BIS-I_NPC2-5_062_trainingData_neuron/'
-        #TODO
-            ]
-X, y = misc.multiple_hdf5_loader(path_list) #load datasets
-
-print("Loaded data has shape: ")
-print(X.shape)
-print(y.shape)
-
-# # Loading temp data
-# data = np.load('/bph/puredata4/bioinfdata/work/omnisphero/CNN/temp/temp.npz')
-# X_pre = data.f.arr_0
-# y_pre = data.f.arr_1
-# data.close()
-# 
-# X = np.concatenate((X_pre, X), axis=0)
-# y = np.concatenate((y_pre, y), axis=0)
-# del X_pre, y_pre
-# # ==============================
-
-print("Correcting axes...")
-X = np.moveaxis(X,1,3)
-y = y.astype(np.int)
-print(X.shape)
-
-#np.savez('/bph/puredata4/bioinfdata/work/omnisphero/CNN/temp/temp2', X, y) 
 
 X = misc.normalize_RGB_pixels(X) #preprocess data
 
 # VALIDATION DATA
 #################
 path = [
-        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK122_trainingData_neuron/'
+        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ESM9_trainingData_neuron/'
        ]
 X_val, y_val = misc.multiple_hdf5_loader(path)
 
@@ -210,8 +151,9 @@ history = model.fit(X, y,
 # SAVING
 ########
 
-model.save('/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/valEKB5.h5')
-model.save_weights('/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/valEKB5_weights.h5')
+model.save('/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/shinyModel_valESM9.h5')
+
+model.save_weights('/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/shinyModel_valESM9_weights.h5')
 
 # Validate the trained model.
 scores = model.evaluate(X_val, y_val, verbose=1)
@@ -226,8 +168,8 @@ plt.ylabel('Accuracy')
 plt.xlabel('Epoch')
 plt.legend(['Train', 'Test'], loc='upper left')
 
-plt.savefig('/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/valEKB5_accuracy.png')
-plt.show()
+plt.savefig('/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/shinyModel_accuracy.png')
+
 
 # Plot training & validation loss values
 plt.plot(history.history['loss'])
@@ -237,8 +179,7 @@ plt.ylabel('Loss')
 plt.xlabel('Epoch')
 plt.legend(['Train', 'Test'], loc='upper left')
 
-plt.savefig('/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/valEKB5_loss.png')
-plt.show()
+plt.savefig('/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/shinyModel_loss.png')
 
 # END OF FILE
 #############

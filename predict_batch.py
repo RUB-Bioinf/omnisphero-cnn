@@ -11,7 +11,7 @@ sys.path.append('/bph/puredata1/bioinfdata/user/butjos/work/code/misc')
 import misc_omnisphero as misc
 import numpy as np
 import pandas as pd
-from tensorflow.keras.models import load_model
+from keras.models import load_model
 
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
@@ -19,15 +19,14 @@ print("Imports done...")
 
 # LOAD MODEL
 ############
-model = load_model(#TODO)
+model = load_model('/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/shinyModel_valESM9.h5')
 
 print("Loaded model...")
 
 # MAIN LOOP
 ###########
 
-path = #TODO
-
+path = '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/wholeWell/neuron/'
 #construct directory walker
 dir_list = [x[0] for x in os.walk(path)]
 
@@ -78,7 +77,7 @@ for folder in dir_list[1:]:
     
             #save with new name
             split_name = filename.split('.')
-            df.to_csv(split_name[0] + '_prediction.csv', sep=';', index=False)
+            df.to_csv(split_name[0] + '_prediction_test.csv', sep=';', index=False)
     
             #update start point
             start_point += df_length

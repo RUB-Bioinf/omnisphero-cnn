@@ -182,8 +182,11 @@ for n in range(len(scrambleResults)):
     label = scrambles['label']
     training_path_list = scrambles['train']
     validation_path_list = scrambles['val']
+    outPathCurrent = outPath + label + os.sep
+    os.makedirs(outPathCurrent,exist_ok=True);
 
     print('Round: ' + str(n+1) + '/' + str(len(scrambleResults)) + ' -> ' + label)
+    print('Writing results here: ' + outPathCurrent)
     time.sleep(5)
 
     # TRAINING DATA
@@ -241,8 +244,7 @@ for n in range(len(scrambleResults)):
     input_depth = 3
     data_format = 'channels_last'
     optimizer_name = 'adam'
-    epochs = 2
-    
+    epochs = 30    
     
     # CONSTRUCTION
     ##############
@@ -272,8 +274,8 @@ for n in range(len(scrambleResults)):
     # SAVING
     ########
     
-    model.save(outPath + label + '.h5')
-    model.save_weights(outPath + label + '_weights.h5')
+    model.save(outPathCurrent + label + '.h5')
+    model.save_weights(outPathCurrent + label + '_weights.h5')
     
     # Validate the trained model.
     scores = model.evaluate(X_val, y_val, verbose=1)
@@ -288,7 +290,8 @@ for n in range(len(scrambleResults)):
     plt.xlabel('Epoch')
     plt.legend(['Train', 'Test'], loc='upper left')
     
-    plt.savefig(outPath + label + '_accuracy.png')
+    plt.savefig(outPathCurrent + label + '_accuracy.png')
+    del plt
     
     # Plot training & validation loss values
     plt.plot(history.history['loss'])
@@ -298,7 +301,8 @@ for n in range(len(scrambleResults)):
     plt.xlabel('Epoch')
     plt.legend(['Train', 'Test'], loc='upper left')
     
-    plt.savefig(outPath + label + 'loss.png')
+    plt.savefig(outPathCurrent + label + 'loss.png')
+    del plt
     
     # END OF FILE
     #############

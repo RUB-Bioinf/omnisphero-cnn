@@ -9,6 +9,7 @@ JOSHUA BUTKE, SEPTEMBER 2019
 import numpy as np
 import h5py
 import os
+import time
 
 from tensorflow import keras
 
@@ -16,9 +17,11 @@ from keras.models import Model
 from keras.layers import Dense, Input, Conv2D, MaxPooling2D, Flatten, Dropout, BatchNormalization, Activation
 from keras import optimizers, regularizers
 
+from scramblePaths import *
+
 import matplotlib.pyplot as plt
 
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 # Custom Module
 ###############
@@ -26,9 +29,6 @@ import sys
 sys.path.append('/bph/puredata1/bioinfdata/user/butjos/work/code/misc')
 
 import misc_omnisphero as misc
-
-# TRAINING DATA
-###############
 
 # =========== List of all available neuron experiments on SAS15 ============================================================================
 # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS81_trainingData_neuron/'
@@ -53,69 +53,30 @@ import misc_omnisphero as misc
 # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ESM10_trainingData_oligo/'
 # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/MP70_trainingData_oligo/'
 
-path_list = [
+allNeurons = [
         '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS81_trainingData_neuron/',
         '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/FJK125_trainingData_neuron/',
         '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/FJK130_trainingData_neuron/',
         '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK96_trainingData_neuron/',
-        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS79_BIS-I_NPC2-5_062_trainingData_neuron/'
-        #TODO
+        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS79_BIS-I_NPC2-5_062_trainingData_neuron/',
+        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK122_trainingData_neuron/',
+        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/EKB5_trainingData_neuron/',
+        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ESM9_trainingData_neuron/'
             ]
-X, y = misc.multiple_hdf5_loader(path_list) #load datasets
 
-print("Loaded data has shape: ")
-print(X.shape)
-print(y.shape)
-
-# # Loading temp data
-# data = np.load('/bph/puredata4/bioinfdata/work/omnisphero/CNN/temp/temp.npz')
-# X_pre = data.f.arr_0
-# y_pre = data.f.arr_1
-# data.close()
-# 
-# X = np.concatenate((X_pre, X), axis=0)
-# y = np.concatenate((y_pre, y), axis=0)
-# del X_pre, y_pre
-# # ==============================
-
-print("Correcting axes...")
-X = np.moveaxis(X,1,3)
-y = y.astype(np.int)
-print(X.shape)
-
-#np.savez('/bph/puredata4/bioinfdata/work/omnisphero/CNN/temp/temp2', X, y) 
-
-X = misc.normalize_RGB_pixels(X) #preprocess data
-
-# VALIDATION DATA
-#################
-path = [
-        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK122_trainingData_neuron/'
-       ]
-X_val, y_val = misc.multiple_hdf5_loader(path)
-
-print("Loaded validation data has shape: ")
-print(X_val.shape)
-print(y_val.shape)
-print("Correcting axes...")
-X_val = np.moveaxis(X_val,1,3)
-X_val = misc.normalize_RGB_pixels(X_val)
-y_val = y_val.astype(np.int)
-print(X_val.shape)
-print(y_val.shape)
-
-#####################################################################
-
-# HYPERPARAMETERS
-#################
-batch_size = 1000
-n_classes = 1
-input_height = 64
-input_width = 64
-input_depth = 3
-data_format = 'channels_last'
-optimizer_name = 'adam'
-epochs = 30
+allOligos = [
+        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS81_trainingData_oligo/',
+'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS79_trainingData_oligo/',
+'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK122_trainingData_oligo/',
+'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK95_trainingData_oligo/',
+'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK153_trainingData_oligo/',
+'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK155_trainingData_oligo/',
+'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK156_trainingData_oligo/',
+'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/EKB5_trainingData_oligo/',
+'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ESM9_trainingData_oligo/',
+'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ESM10_trainingData_oligo/',
+'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/MP70_trainingData_oligo/'
+            ]
 
 # CNN MODELS
 ############
@@ -182,63 +143,162 @@ def omnisphero_CNN(n_classes, input_height, input_width, input_depth, data_forma
     
     return model
 
-# CONSTRUCTION
-##############
+# HARDCODED PARAMETERS
+###############
+#training_path_list = [
+#        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS81_trainingData_neuron/',
+#        #'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/FJK125_trainingData_neuron/',
+#        #'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/FJK130_trainingData_neuron/',
+#        #'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK96_trainingData_neuron/',
+#        #'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS79_BIS-I_NPC2-5_062_trainingData_neuron/'
+#        #TODO
+#            ]
+#
+#validation_path_list = [
+#        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK122_trainingData_neuron/'
+#       ]
+#
+#
+#label = 'ayy';
+###############
 
-print("Building model...")
-model = omnisphero_CNN(n_classes, input_height, input_width, input_depth, data_format)
-model.compile(loss='binary_crossentropy', optimizer=optimizer_name, metrics=['accuracy'])
-model.summary()
-print("Model output shape: ", model.output_shape)
+# Initiating dummy variables
+X = 0
+y = 0
+model = 0
 
-#class weighting
-from sklearn.utils.class_weight import compute_class_weight
+scrambleResults = scramblePaths(allNeurons,2)
+outPath = '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/results/';
+os.makedirs(outPath,exist_ok=True);
+time.sleep(5)
 
-y_order = y.reshape(y.shape[0])
-class_weights = compute_class_weight('balanced', np.unique(y), y_order)
-print("Class weights: ", class_weights)
+for n in range(len(scrambleResults)):
+    # Remove previous iteration
+    del X
+    del y
+    del model
 
-# TRAINING
-##########
+    scrambles = scrambleResults[n]
+    label = scrambles['label']
+    training_path_list = scrambles['train']
+    validation_path_list = scrambles['val']
 
-history = model.fit(X, y, 
-                    validation_data=(X_val, y_val), 
-                    epochs=epochs, batch_size=batch_size, 
-                    class_weight=class_weights
-                   )
+    print('Round: ' + str(n+1) + '/' + str(len(scrambleResults)) + ' -> ' + label)
+    time.sleep(5)
 
-# SAVING
-########
-
-model.save('/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/valEKB5.h5')
-model.save_weights('/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/valEKB5_weights.h5')
-
-# Validate the trained model.
-scores = model.evaluate(X_val, y_val, verbose=1)
-print('Test loss:', scores[0])
-print('Test accuracy:', scores[1])
-
-# Plot training & validation accuracy values
-plt.plot(history.history['acc'])
-plt.plot(history.history['val_acc'])
-plt.title('Model accuracy')
-plt.ylabel('Accuracy')
-plt.xlabel('Epoch')
-plt.legend(['Train', 'Test'], loc='upper left')
-
-plt.savefig('/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/valEKB5_accuracy.png')
-plt.show()
-
-# Plot training & validation loss values
-plt.plot(history.history['loss'])
-plt.plot(history.history['val_loss'])
-plt.title('Model loss')
-plt.ylabel('Loss')
-plt.xlabel('Epoch')
-plt.legend(['Train', 'Test'], loc='upper left')
-
-plt.savefig('/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/valEKB5_loss.png')
-plt.show()
-
-# END OF FILE
-#############
+    # TRAINING DATA
+    ###############
+    print("Traing data size: "+str(len(training_path_list)))
+    X, y = misc.multiple_hdf5_loader(training_path_list) #load datasets
+    print("Loaded data has shape: ")
+    print(X.shape)
+    print(y.shape)
+    
+    # # Loading temp data
+    # data = np.load('/bph/puredata4/bioinfdata/work/omnisphero/CNN/temp/temp.npz')
+    # X_pre = data.f.arr_0
+    # y_pre = data.f.arr_1
+    # data.close()
+    # 
+    # X = np.concatenate((X_pre, X), axis=0)
+    # y = np.concatenate((y_pre, y), axis=0)
+    # del X_pre, y_pre
+    # # ==============================
+    
+    print("Correcting axes...")
+    X = np.moveaxis(X,1,3)
+    y = y.astype(np.int)
+    print(X.shape)
+    
+    #np.savez('/bph/puredata4/bioinfdata/work/omnisphero/CNN/temp/temp2', X, y) 
+    
+    X = misc.normalize_RGB_pixels(X) #preprocess data
+    
+    # VALIDATION DATA
+    #################
+    print("Validation data size: "+str(len(validation_path_list)))
+    X_val, y_val = misc.multiple_hdf5_loader(validation_path_list)
+    #################
+    
+    print("Loaded validation data has shape: ")
+    print(X_val.shape)
+    print(y_val.shape)
+    print("Correcting axes...")
+    X_val = np.moveaxis(X_val,1,3)
+    X_val = misc.normalize_RGB_pixels(X_val)
+    y_val = y_val.astype(np.int)
+    print(X_val.shape)
+    print(y_val.shape)
+    
+    #####################################################################
+    
+    # HYPERPARAMETERS
+    #################
+    batch_size = 1000
+    n_classes = 1
+    input_height = 64
+    input_width = 64
+    input_depth = 3
+    data_format = 'channels_last'
+    optimizer_name = 'adam'
+    epochs = 2
+    
+    
+    # CONSTRUCTION
+    ##############
+    
+    print("Building model...")
+    model = omnisphero_CNN(n_classes, input_height, input_width, input_depth, data_format)
+    model.compile(loss='binary_crossentropy', optimizer=optimizer_name, metrics=['accuracy'])
+    model.summary()
+    print("Model output shape: ", model.output_shape)
+    
+    #class weighting
+    from sklearn.utils.class_weight import compute_class_weight
+    
+    y_order = y.reshape(y.shape[0])
+    class_weights = compute_class_weight('balanced', np.unique(y), y_order)
+    print("Class weights: ", class_weights)
+    
+    # TRAINING
+    ##########
+    
+    history = model.fit(X, y, 
+                        validation_data=(X_val, y_val), 
+                        epochs=epochs, batch_size=batch_size, 
+                        class_weight=class_weights
+                       )
+    
+    # SAVING
+    ########
+    
+    model.save(outPath + label + '.h5')
+    model.save_weights(outPath + label + '_weights.h5')
+    
+    # Validate the trained model.
+    scores = model.evaluate(X_val, y_val, verbose=1)
+    print('Test loss:', scores[0])
+    print('Test accuracy:', scores[1])
+    
+    # Plot training & validation accuracy values
+    plt.plot(history.history['acc'])
+    plt.plot(history.history['val_acc'])
+    plt.title('Model accuracy')
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epoch')
+    plt.legend(['Train', 'Test'], loc='upper left')
+    
+    plt.savefig(outPath + label + '_accuracy.png')
+    
+    # Plot training & validation loss values
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('Model loss')
+    plt.ylabel('Loss')
+    plt.xlabel('Epoch')
+    plt.legend(['Train', 'Test'], loc='upper left')
+    
+    plt.savefig(outPath + label + 'loss.png')
+    
+    # END OF FILE
+    #############

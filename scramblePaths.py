@@ -35,8 +35,9 @@ def scramblePaths(pathCandidateList,dropRate):
     l = len(pathCandidateList)
 
     res = []
-    for i in range(l):
-    	pathCandidateList.append(pathCandidateList.pop(0))
+    for i in range(0,l,dropRate):
+    	for j in range(dropRate):
+    		pathCandidateList.append(pathCandidateList.pop(0))
     	round = {}
 
     	candidates = pathCandidateList.copy()
@@ -53,6 +54,7 @@ def scramblePaths(pathCandidateList,dropRate):
     	for j in range(len(candidates)):
     		c = candidates[j]
     		name = filterExperimentName(c,j*i)
+    		#name = candidates[j]
     		label = label + '_' + name
     	label = label[1:]
 
@@ -64,6 +66,8 @@ def scramblePaths(pathCandidateList,dropRate):
 
     	res.append(round)
     return res
+
+training_path_list = ['a','b','c','d','e','f']
 
 #scrableResult = scramblePaths(training_path_list,2)
 #for n in range(len(scrableResult)):

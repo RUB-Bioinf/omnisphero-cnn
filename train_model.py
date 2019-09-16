@@ -15,7 +15,12 @@ from tensorflow import keras
 
 from keras.models import Model
 from keras.layers import Dense, Input, Conv2D, MaxPooling2D, Flatten, Dropout, BatchNormalization, Activation
+from keras.optimizers import Adam, RMSprop, SGD
 from keras import optimizers, regularizers
+from sklearn.metrics import roc_auc_score, auc
+from keras.callbacks import Callback
+
+from sklearn.metrics import roc_curve, roc_auc_score
 
 from scramblePaths import *
 
@@ -65,17 +70,17 @@ allNeurons = [
             ]
 
 allOligos = [
-        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS81_trainingData_oligo/',
-'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS79_trainingData_oligo/',
-'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK122_trainingData_oligo/',
-'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK95_trainingData_oligo/',
-'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK153_trainingData_oligo/',
-'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK155_trainingData_oligo/',
-'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK156_trainingData_oligo/',
-'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/EKB5_trainingData_oligo/',
-'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ESM9_trainingData_oligo/',
-'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ESM10_trainingData_oligo/',
-'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/MP70_trainingData_oligo/'
+        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/ELS81_trainingData_oligo/',
+'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/ELS79_BIS-I_NPC2-5_062_trainingData_oligo/',
+'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK122_trainingData_oligo/',
+'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK95_trainingData_oligo/',
+'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK153_trainingData_oligo/',
+'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK155_trainingData_oligo/',
+'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK156_trainingData_oligo/',
+'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/EKB5_trainingData_oligo/',
+#'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/ESM9_trainingData_oligo/',
+#'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/ESM10_trainingData_oligo/',
+'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/MP70_trainingData_oligo/'
             ]
 
 # CNN MODELS
@@ -143,6 +148,44 @@ def omnisphero_CNN(n_classes, input_height, input_width, input_depth, data_forma
     
     return model
 
+
+# ROC stuff
+# Source: https://stackoverflow.com/questions/41032551/how-to-compute-receiving-operating-characteristic-roc-and-auc-in-keras
+class roc_callback(Callback):
+    def __init__(self,training_data,validation_data,file_handle):
+        self.x = training_data[0]
+        self.y = training_data[1]
+        self.x_val = validation_data[0]
+        self.y_val = validation_data[1]
+        self.f = file_handle
+
+
+    def on_train_begin(self, logs={}):
+        return
+
+    def on_train_end(self, logs={}):
+        return
+
+    def on_epoch_begin(self, epoch, logs={}):
+        return
+
+    def on_epoch_end(self, epoch, logs={}):
+        #print('Calculating roc values')
+        #y_pred = self.model.predict(self.x)
+        #roc = roc_auc_score(self.y, y_pred)
+        #y_pred_val = self.model.predict(self.x_val)
+        #roc_val = roc_auc_score(self.y_val, y_pred_val)
+        #self.f.write('\rroc-auc: %s - roc-auc_val: %s' % (str(round(roc,4)),str(round(roc_val,4))),end=100*' '+'\n')
+        #self.f.write('roc-auc: ' + str(round(roc,4))+ ' - roc-auc_val: ' + str(round(roc_val,4)) +'\n')
+        return
+
+    def on_batch_begin(self, batch, logs={}):
+        return
+
+    def on_batch_end(self, batch, logs={}):
+        return
+
+
 # HARDCODED PARAMETERS
 ###############
 #training_path_list = [
@@ -167,10 +210,13 @@ X = 0
 y = 0
 model = 0
 
-scrambleResults = scramblePaths(allNeurons,2)
-outPath = '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/results/';
+scrambleResults = scramblePaths(allOligos,2)
+outPath = '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/results/roc_results/';
+print('Saving results here: ' + outPath)
 os.makedirs(outPath,exist_ok=True);
-time.sleep(5)
+
+print('sleeep [roc]...')
+time.sleep(10)
 
 for n in range(len(scrambleResults)):
     # Remove previous iteration
@@ -182,8 +228,17 @@ for n in range(len(scrambleResults)):
     label = scrambles['label']
     training_path_list = scrambles['train']
     validation_path_list = scrambles['val']
-    outPathCurrent = outPath + label + os.sep
+    outPathCurrent = outPath + str(n)+'_'+ label + os.sep
     os.makedirs(outPathCurrent,exist_ok=True);
+
+    f = open(outPathCurrent + label + '_training_info.txt','w+')
+    f.write('Label: '+label+'\nTraining paths:\n')
+    for i in range(len(training_path_list)):
+        f.write(training_path_list[i]+'\n')
+    f.write('\nValidation paths:\n')
+    for i in range(len(validation_path_list)):
+        f.write(validation_path_list[i]+'\n')
+    f.close()
 
     print('Round: ' + str(n+1) + '/' + str(len(scrambleResults)) + ' -> ' + label)
     print('Writing results here: ' + outPathCurrent)
@@ -219,7 +274,7 @@ for n in range(len(scrambleResults)):
     
     # VALIDATION DATA
     #################
-    print("Validation data size: "+str(len(validation_path_list)))
+    print("Validation data size: " + str(len(validation_path_list)))
     X_val, y_val = misc.multiple_hdf5_loader(validation_path_list)
     #################
     
@@ -243,15 +298,16 @@ for n in range(len(scrambleResults)):
     input_width = 64
     input_depth = 3
     data_format = 'channels_last'
-    optimizer_name = 'adam'
-    epochs = 30    
+    optimizer_name = 'adadelta'
+    learn_rate = 0.0001
+    epochs = 40
     
     # CONSTRUCTION
     ##############
     
     print("Building model...")
     model = omnisphero_CNN(n_classes, input_height, input_width, input_depth, data_format)
-    model.compile(loss='binary_crossentropy', optimizer=optimizer_name, metrics=['accuracy'])
+    model.compile(loss='binary_crossentropy', optimizer=SGD(lr=learn_rate), metrics=['accuracy'])
     model.summary()
     print("Model output shape: ", model.output_shape)
     
@@ -265,44 +321,91 @@ for n in range(len(scrambleResults)):
     # TRAINING
     ##########
     
-    history = model.fit(X, y, 
+    f = open(outPathCurrent + label + '_roc.txt','w+')
+    history_all = model.fit(X, y, 
                         validation_data=(X_val, y_val), 
+                        callbacks=[roc_callback(training_data=(X, y),validation_data=(X_val, y_val),file_handle=f)],
                         epochs=epochs, batch_size=batch_size, 
                         class_weight=class_weights
                        )
+
+    history=[np.zeros((epochs,4), dtype=np.float32)]
+    history[0][:,0] = history_all.history['loss']
+    history[0][:,1] = history_all.history['acc']
+    history[0][:,2]= history_all.history['val_loss']
+    history[0][:,3] = history_all.history['val_acc']
+    f.close()
     
     # SAVING
     ########
     
     model.save(outPathCurrent + label + '.h5')
     model.save_weights(outPathCurrent + label + '_weights.h5')
+    print('Saved model: ' + outPathCurrent + label)
     
     # Validate the trained model.
     scores = model.evaluate(X_val, y_val, verbose=1)
     print('Test loss:', scores[0])
     print('Test accuracy:', scores[1])
+
+    #np.save(np.stack([history.history['acc'],history.history['val_acc'],history.history['loss'],history.history['val_loss']]),outPathCurrent + label + '_history.npy')
     
     # Plot training & validation accuracy values
-    plt.plot(history.history['acc'])
-    plt.plot(history.history['val_acc'])
+    plt.plot(history_all.history['acc'])
+    plt.plot(history_all.history['val_acc'])
     plt.title('Model accuracy')
     plt.ylabel('Accuracy')
     plt.xlabel('Epoch')
-    plt.legend(['Train', 'Test'], loc='upper left')
+    plt.legend(['Train', 'Validation'], loc='upper left')
     
     plt.savefig(outPathCurrent + label + '_accuracy.png')
-    del plt
+    plt.clf()
+    print('Saved accuracy.')
     
     # Plot training & validation loss values
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
+    plt.plot(history_all.history['loss'])
+    plt.plot(history_all.history['val_loss'])
     plt.title('Model loss')
     plt.ylabel('Loss')
     plt.xlabel('Epoch')
-    plt.legend(['Train', 'Test'], loc='upper left')
+    plt.legend(['Train', 'Validation'], loc='upper left')
     
-    plt.savefig(outPathCurrent + label + 'loss.png')
-    del plt
+    plt.savefig(outPathCurrent + label + '_loss.png')
+    plt.clf()
+    print('Saved loss.')
+
+    np.save(outPathCurrent + label + "_history.npy", history)
+    print('Saved history.')
     
-    # END OF FILE
-    #############
+    #print('Calculating roc curve.')
+    y_pred_roc = model.predict(X_val).ravel()
+    fpr_roc, tpr_roc, thresholds_roc = roc_curve(y_val, y_pred_roc)
+    auc_roc = auc(fpr_roc, tpr_roc)
+    
+    plt.plot([0, 1], [0, 1], 'k--')
+    plt.plot(fpr_roc, tpr_roc, label='ROC (area = {:.3f})'.format(auc_roc))
+    plt.xlabel('False positive rate')
+    plt.ylabel('True positive rate')
+    plt.title('ROC curve')
+    plt.legend(loc='best')
+    plt.savefig(outPathCurrent + label + '_roc.png')
+    plt.clf()
+
+    #print('Calculating roc curve.')
+    #y_val_cat_prob = model.predict(X_val)
+    #fpr, tpr, thresholds = roc_curve(y_val,y_val_cat_prob)
+
+    #print('Saved roc curve.')
+    #plt.plot(fpr,tpr)
+    #plt.axis([0,1,0,1])
+    #plt.title('Model loss')
+    #plt.ylabel('True Positive Rate')
+    #plt.xlabel('False Positive Rate')
+
+    #plt.savefig(outPathCurrent + label + 'roc.png')
+    #plt.clf()
+    
+# END OF FILE
+#############
+
+print('Training done.')

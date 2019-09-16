@@ -13,33 +13,41 @@ import numpy as np
 import pandas as pd
 from keras.models import load_model
 
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
 print("Imports done...")
 
 # LOAD MODEL
 ############
-model = load_model('/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/shinyModel_valESM9.h5')
+model = load_model('/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/results/3_FJK130_JK96/3_FJK130_JK96.h5')
 
 print("Loaded model...")
 
 # MAIN LOOP
 ###########
 
-path = '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/wholeWell/neuron/'
+#path = '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/wholeWell/neuron/'
 #construct directory walker
-dir_list = [x[0] for x in os.walk(path)]
+#dir_list = [x[0] for x in os.walk(path)]
+#print("Constructed directory walker...")
 
-print("Constructed directory walker...")
+dir_list = [
+         #'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS81_unannotatedData_neuron/',
+         '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK96_unannotatedData_neuron/'
+        ]
 
-for folder in dir_list[1:]:
+
+for folder in dir_list[0:]:
+    print('Considering: '+folder)
     if "unannotated" in folder:
         pass
     else:
         continue
+
     #load data
     X_to_predict, _ = misc.hdf5_loader(str(folder))
-#process data
+
+    #process data
     X_to_predict = np.asarray(X_to_predict)
     print('Loaded data at: ',str(folder))
     print(X_to_predict.shape)
@@ -68,7 +76,7 @@ for folder in dir_list[1:]:
     
     for f in directory_csv_contents:
         filename = os.fsdecode(f)
-        if filename.endswith('.csv') and not filename.endswith('_prediction.csv'):
+        if filename.endswith('.csv') and not filename.endswith('_prediction.csv') and not filename.endswith('_prediction_test.csv'):
             #reading
             print('Manipulating: ', filename)
             df = pd.read_csv(filename, delimiter=';')
@@ -77,10 +85,11 @@ for folder in dir_list[1:]:
     
             #save with new name
             split_name = filename.split('.')
-            df.to_csv(split_name[0] + '_prediction_test.csv', sep=';', index=False)
+            df.to_csv(split_name[0] + '_prediction.csv', sep=';', index=False)
     
             #update start point
             start_point += df_length
 
 # END OF FILE
 #############
+print('Predictions done.')

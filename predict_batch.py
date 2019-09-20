@@ -19,7 +19,8 @@ print("Imports done...")
 
 # LOAD MODEL
 ############
-model = load_model('/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/results/3_FJK130_JK96/3_FJK130_JK96.h5')
+model = load_model('/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/results/roc_results9/0_ELS81/ELS81.h5')
+model.load_weights('/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/results/roc_results9/0_ELS81/ELS81_weights_best.h5')
 
 print("Loaded model...")
 
@@ -33,7 +34,7 @@ print("Loaded model...")
 
 dir_list = [
          #'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS81_unannotatedData_neuron/',
-         '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK96_unannotatedData_neuron/'
+         '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS81_unannotatedData_neuron/'
         ]
 
 

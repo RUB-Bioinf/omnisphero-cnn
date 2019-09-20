@@ -31,12 +31,33 @@ def filterExperimentName(path,id):
 		name = m
 	return name
 
-def scramblePaths(pathCandidateList,dropRate):
+def scramblePaths(pathCandidateList,validation_count,predict_count):
     l = len(pathCandidateList)
-
     res = []
-    for i in range(0,l,dropRate):
-    	for j in range(dropRate):
+
+    if validation_count <= 0:
+    	raise Exception('The requested amount of validation data is zero or less: ' + str(validation_count))
+
+    if predict_count < 0:
+    	raise Exception('The requested amount of prediction data is netgative: ' + str(predict_count))
+
+    #if predict_count == 0:
+    #	round = {}
+    #	train = pathCandidateList
+    #	rest = []
+    #	val = []
+    #	for j in range(0,validation_count):
+    #		val.append(train.pop(0))
+	#
+    #	round['label'] = 'All'
+    #	round['train'] = train
+    #	round['val'] = val
+    #	res.append(round)
+	#
+    #	return res
+
+    for i in range(0,l,max(predict_count,1)):
+    	for j in range(predict_count):
     		pathCandidateList.append(pathCandidateList.pop(0))
     	round = {}
 
@@ -45,14 +66,19 @@ def scramblePaths(pathCandidateList,dropRate):
     	rest = []
     	val = []
 
-    	for j in range(l-(dropRate+1)):
+    	for j in range(l-(predict_count+validation_count)):
     		train.append(candidates.pop(0))
 
-    	val.append(candidates.pop(0))
+    	for j in range(0,validation_count):
+    		val.append(candidates.pop(0))
 
     	label = ''
-    	for j in range(len(candidates)):
-    		c = candidates[j]
+    	labelList = candidates;
+    	if predict_count == 0:
+    		labelList = val
+
+    	for j in range(len(labelList)):
+    		c = labelList[j]
     		name = filterExperimentName(c,j*i)
     		#name = candidates[j]
     		label = label + '_' + name
@@ -67,9 +93,9 @@ def scramblePaths(pathCandidateList,dropRate):
     	res.append(round)
     return res
 
-training_path_list = ['a','b','c','d','e','f']
-
-#scrableResult = scramblePaths(training_path_list,2)
+#training_path_list = ['a','b','c','d','e','f','g']
+#
+#scrableResult = scramblePaths(pathCandidateList=training_path_list,validation_count=2,predict_count=1)
 #for n in range(len(scrableResult)):
 #	scrambles = scrableResult[n]
 #	label = scrambles['label']

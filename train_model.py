@@ -14,19 +14,26 @@ import time
 from tensorflow import keras
 
 from keras.models import Model
+from keras.models import Sequential
+from keras.models import model_from_json
+
 from keras.layers import Dense, Input, Conv2D, MaxPooling2D, Flatten, Dropout, BatchNormalization, Activation
 from keras.optimizers import Adam, RMSprop, SGD
 from keras import optimizers, regularizers
-from sklearn.metrics import roc_auc_score, auc
 from keras.callbacks import Callback
+from keras.utils import *
+from keras.layers import Dense
+from keras.utils.vis_utils import plot_model
+from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 
 from sklearn.metrics import roc_curve, roc_auc_score
+from sklearn.metrics import roc_auc_score, auc
 
 from scramblePaths import *
 
 import matplotlib.pyplot as plt
 
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="3"
 
 # Custom Module
 ###############
@@ -59,28 +66,45 @@ import misc_omnisphero as misc
 # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/MP70_trainingData_oligo/'
 
 allNeurons = [
-        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS81_trainingData_neuron/',
-        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/FJK125_trainingData_neuron/',
-        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/FJK130_trainingData_neuron/',
-        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK96_trainingData_neuron/',
-        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS79_BIS-I_NPC2-5_062_trainingData_neuron/',
-        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK122_trainingData_neuron/',
-        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/EKB5_trainingData_neuron/',
-        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ESM9_trainingData_neuron/'
+        '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS81_trainingData_neuron/',
+        '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/FJK125_trainingData_neuron/',
+        '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/FJK130_trainingData_neuron/',
+        '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK96_trainingData_neuron/',
+        '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS79_BIS-I_NPC2-5_062_trainingData_neuron/',
+        '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK122_trainingData_neuron/',
+        '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/EKB5_trainingData_neuron/',
+        '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ESM9_trainingData_neuron/'
             ]
 
 allOligos = [
-        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/ELS81_trainingData_oligo/',
-'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/ELS79_BIS-I_NPC2-5_062_trainingData_oligo/',
-'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK122_trainingData_oligo/',
-'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK95_trainingData_oligo/',
-'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK153_trainingData_oligo/',
-'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK155_trainingData_oligo/',
-'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK156_trainingData_oligo/',
-'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/EKB5_trainingData_oligo/',
-#'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/ESM9_trainingData_oligo/',
-#'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/ESM10_trainingData_oligo/',
-'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/MP70_trainingData_oligo/'
+       # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/ELS81_trainingData_oligo/',
+       # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/ELS79_BIS-I_NPC2-5_062_trainingData_oligo/',
+       # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK122_trainingData_oligo/',
+       # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK95_trainingData_oligo/',
+       # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK153_trainingData_oligo/',
+       # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK155_trainingData_oligo/',
+       # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK156_trainingData_oligo/',
+       # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/EKB5_trainingData_oligo/',
+       # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/ESM9_trainingData_oligo/',
+       # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/ESM10_trainingData_oligo/',
+       # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/MP70_trainingData_oligo/'
+
+       # Defect experiments
+        #'/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK95_trainingData_oligo/',
+
+
+        '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/ELS81_trainingData_oligo/',
+        '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/ELS79_BIS-I_NPC2-5_062_trainingData_oligo/',
+        '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK122_trainingData_oligo/',
+        '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK153_trainingData_oligo/',
+        '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK155_trainingData_oligo/',
+        '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK156_trainingData_oligo/',
+        '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/EKB5_trainingData_oligo/',
+        '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/ESM9_trainingData_oligo/',
+        '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/ESM10_trainingData_oligo/',
+        '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/MP66_trainingData_oligo/',
+        '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/MP67_trainingData_oligo/',
+        '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/MP70_trainingData_oligo/'
             ]
 
 # CNN MODELS
@@ -151,38 +175,61 @@ def omnisphero_CNN(n_classes, input_height, input_width, input_depth, data_forma
 
 # ROC stuff
 # Source: https://stackoverflow.com/questions/41032551/how-to-compute-receiving-operating-characteristic-roc-and-auc-in-keras
-class roc_callback(Callback):
+class plot_callback(Callback):
     def __init__(self,training_data,validation_data,file_handle):
-        self.x = training_data[0]
-        self.y = training_data[1]
-        self.x_val = validation_data[0]
-        self.y_val = validation_data[1]
-        self.f = file_handle
+        self.i = 0
+        self.x = []
+        self.losses = []
+        self.val_losses = []
+        self.accuracy = []
+        self.val_accuracy = []
+        
+        #self.fig = plt.figure()
+        
+        self.logs = []
 
+        self.batchCount = 0
 
     def on_train_begin(self, logs={}):
+        f.write('Training start.' + '\n')
         return
 
     def on_train_end(self, logs={}):
+        f.write('Training finished.' + '\n')
+        #self.fig.close()
         return
 
     def on_epoch_begin(self, epoch, logs={}):
         return
 
     def on_epoch_end(self, epoch, logs={}):
-        #print('Calculating roc values')
-        #y_pred = self.model.predict(self.x)
-        #roc = roc_auc_score(self.y, y_pred)
-        #y_pred_val = self.model.predict(self.x_val)
-        #roc_val = roc_auc_score(self.y_val, y_pred_val)
-        #self.f.write('\rroc-auc: %s - roc-auc_val: %s' % (str(round(roc,4)),str(round(roc_val,4))),end=100*' '+'\n')
-        #self.f.write('roc-auc: ' + str(round(roc,4))+ ' - roc-auc_val: ' + str(round(roc_val,4)) +'\n')
+    #    self.logs.append(logs)
+    #    self.x.append(self.i)
+    #    self.losses.append(logs.get('loss'))
+    #    self.val_losses.append(logs.get('val_loss'))
+    #    self.accuracy.append(logs.get('accuracy'))
+    #    self.val_accuracy.append(logs.get('val_accuracy'))
+    #    self.i += 1
+    #    
+    #    #clear_output(wait=True)
+    #    plt.clear()
+    #    #plt.plot(self.x, self.losses, label="Loss")
+    #    #plt.plot(self.x, self.val_losses, label="Validation Loss")
+    #    plt.plot(self.x, self.accuracy, label="Accuracy")
+    #    plt.plot(self.x, self.val_accuracy, label="Validation Accuracy")
+    #    plt.legend(loc='best')
+    #    #plt.show();
+    #    plt.draw()
+    #    plt.pause(0.001)
         return
 
     def on_batch_begin(self, batch, logs={}):
+        self.batchCount = self.batchCount + 1
+        f.write('Beginning Batch: ' + str(self.batchCount) + '\n')
         return
 
     def on_batch_end(self, batch, logs={}):
+        f.write('Finished Batch: ' + str(self.batchCount) + '\n')
         return
 
 
@@ -210,8 +257,8 @@ X = 0
 y = 0
 model = 0
 
-scrambleResults = scramblePaths(allOligos,2)
-outPath = '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/results/roc_results/';
+scrambleResults = scramblePaths(pathCandidateList=allOligos,validation_count=2,predict_count=1)
+outPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/results/roc_results2/';
 print('Saving results here: ' + outPath)
 os.makedirs(outPath,exist_ok=True);
 
@@ -308,8 +355,32 @@ for n in range(len(scrambleResults)):
     print("Building model...")
     model = omnisphero_CNN(n_classes, input_height, input_width, input_depth, data_format)
     model.compile(loss='binary_crossentropy', optimizer=SGD(lr=learn_rate), metrics=['accuracy'])
+    #model.compile(loss='mse', optimizer='adam', metrics=['mean_squared_error'])
     model.summary()
     print("Model output shape: ", model.output_shape)
+    #plot_model(model, to_file=outPathCurrent + label + '_model.png', show_shapes=True, show_layer_names=True)
+    f = open(outPathCurrent + label + '_model.txt','w+')
+    
+    f.write('Optimizer: SGD\n')
+    f.write('Loss: binary_crossentropy\n')
+    f.write('Model shape: ' + str(model.output_shape) + '\n')
+    f.write('Batch size: ' + str(batch_size) + '\n')
+    f.write('Classes: ' + str(n_classes) + '\n')
+    f.write('Input height: ' + str(input_height) + '\n')
+    f.write('Input depth: ' + str(input_depth) + '\n')
+    f.write('Data Format: ' + str(data_format) + '\n')
+    f.write('Learn Rate: ' + str(learn_rate) + '\n')
+    f.write('Epocs: ' + str(epochs) + '\n')
+    f.close()
+
+    #def myprint(s):
+    #    with open(outPathCurrent + label + '_model.txt','a+') as f:
+    #        print(s, file=f)
+    #model.summary(print_fn=myprint)
+
+    f = open(outPathCurrent + label + '_molde.json','w+')
+    f.write(model.to_json())
+    f.close()
     
     #class weighting
     from sklearn.utils.class_weight import compute_class_weight
@@ -321,10 +392,14 @@ for n in range(len(scrambleResults)):
     # TRAINING
     ##########
     
-    f = open(outPathCurrent + label + '_roc.txt','w+')
+    print('Reminder. Training for label: ' + label)
+    f = open(outPathCurrent + label + '_training_progress.txt','w+')
+    model_checkpoint = ModelCheckpoint(outPathCurrent + label + '_weights_best.h5', monitor = 'val_loss', verbose=1, save_best_only=True, mode='min')
+    callbacks_list = [model_checkpoint, plot_callback(training_data=(X, y),validation_data=(X_val, y_val),file_handle=f)]
+
     history_all = model.fit(X, y, 
                         validation_data=(X_val, y_val), 
-                        callbacks=[roc_callback(training_data=(X, y),validation_data=(X_val, y_val),file_handle=f)],
+                        callbacks=callbacks_list,
                         epochs=epochs, batch_size=batch_size, 
                         class_weight=class_weights
                        )
@@ -342,6 +417,9 @@ for n in range(len(scrambleResults)):
     model.save(outPathCurrent + label + '.h5')
     model.save_weights(outPathCurrent + label + '_weights.h5')
     print('Saved model: ' + outPathCurrent + label)
+
+    print('Loading best weights again.')
+    model.load_weights(outPathCurrent + label + '_weights_best.h5')
     
     # Validate the trained model.
     scores = model.evaluate(X_val, y_val, verbose=1)
@@ -374,22 +452,40 @@ for n in range(len(scrambleResults)):
     plt.clf()
     print('Saved loss.')
 
+    # SAVING HISTORY
     np.save(outPathCurrent + label + "_history.npy", history)
     print('Saved history.')
     
-    #print('Calculating roc curve.')
-    y_pred_roc = model.predict(X_val).ravel()
-    fpr_roc, tpr_roc, thresholds_roc = roc_curve(y_val, y_pred_roc)
-    auc_roc = auc(fpr_roc, tpr_roc)
+    # ROC Curve
+    print('Calculating roc curve.')
+    try:
+        y_pred_roc = model.predict(X_val).ravel()
+        fpr_roc, tpr_roc, thresholds_roc = roc_curve(y_val, y_pred_roc)
+        auc_roc = auc(fpr_roc, tpr_roc)
     
-    plt.plot([0, 1], [0, 1], 'k--')
-    plt.plot(fpr_roc, tpr_roc, label='ROC (area = {:.3f})'.format(auc_roc))
-    plt.xlabel('False positive rate')
-    plt.ylabel('True positive rate')
-    plt.title('ROC curve')
-    plt.legend(loc='best')
-    plt.savefig(outPathCurrent + label + '_roc.png')
-    plt.clf()
+        plt.plot([0, 1], [0, 1], 'k--')
+        plt.plot(fpr_roc, tpr_roc, label='ROC (area = {:.3f})'.format(auc_roc))
+        plt.xlabel('False positive rate')
+        plt.ylabel('True positive rate')
+        plt.title('ROC curve')
+        plt.legend(loc='best')
+        plt.savefig(outPathCurrent + label + '_roc.png')
+        plt.clf()
+    except Exception as e:
+        #Printing the exception message to file.
+        print("Failed to calculate roc curve for: " + label + ".")
+        f = open(outPathCurrent + label + "_rocError.txt",'w+')
+        f.write(str(e))
+
+        try:
+            #Printing the stack trace to the file
+            exc_info = sys.exc_info()
+            f.write('\n')
+            f.write(str(exc_info))
+        finally:
+            pass
+
+        f.close()
 
     #print('Calculating roc curve.')
     #y_val_cat_prob = model.predict(X_val)

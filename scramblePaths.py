@@ -1,4 +1,5 @@
 import re
+from sklearn.metrics import roc_curve, roc_auc_score, auc
 
 # # === TEST DATA ==
 # training_path_list = [
@@ -31,15 +32,35 @@ def filterExperimentName(path,id):
 		name = m
 	return name
 
+# Input: Array of paths that will be scrambled to be iterated over and train a CNN for each iteration.
+#	pathCandidateList: Input List
+#   validation_count: Based on the input list, how many of these entries shall be declared as validation data?
+#						If this entry is zero, only one iteration is made, with the first entry from the list taken as validation data.
+#   predict_count: Based on the input list, how many of these entries would you later like to predict on? These will be neither training, nor validation data and determine the 'label' parameter.
 def scramblePaths(pathCandidateList,validation_count,predict_count):
     l = len(pathCandidateList)
     res = []
 
-    if validation_count <= 0:
+    if validation_count < 0:
     	raise Exception('The requested amount of validation data is zero or less: ' + str(validation_count))
 
     if predict_count < 0:
     	raise Exception('The requested amount of prediction data is netgative: ' + str(predict_count))
+
+    if validation_count == 0:
+    	round = {}
+    	candidates = pathCandidateList.copy()
+    	candidates = candidates[::-1];
+
+    	val = []
+    	val.append(candidates.pop())
+
+    	round['label'] = 'custom'
+    	round['train'] = candidates
+    	round['val'] = val
+
+    	res.append(round)
+    	return res
 
     #if predict_count == 0:
     #	round = {}

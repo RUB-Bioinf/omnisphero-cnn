@@ -9,13 +9,14 @@ PROJECT: Omnisphero CNN
 
 """
 
-#IMPORTS
+# IMPORTS
 ########
 
 import os
 import numpy as np
 import h5py
 import re
+
 
 # FUNCTION DEFINITONS
 #####################
@@ -42,7 +43,7 @@ def hdf5_loader(path, pattern='_[A-Z][0-9]{2}_', suffix_data='.h5', suffix_label
         print(X.shape)
         print(y.shape)
     '''
-    
+
     X = []
     y = []
 
@@ -52,38 +53,44 @@ def hdf5_loader(path, pattern='_[A-Z][0-9]{2}_', suffix_data='.h5', suffix_label
     directory_contents.sort()
 
     pattern = re.compile(pattern)
-    
-    for file in directory_contents:
-        filename = os.fsdecode(file)
-        
+
+    file_count = len(directory_contents)
+    for i in range(file_count):
+        filename = os.fsdecode(directory_contents[i])
+
         if filename.endswith(suffix_label):
-            print("Opening: ", filename, "\n")
-            
+            # print("Opening: ", filename, "\n")
+
             with h5py.File(filename, 'r') as f:
                 key_list = list(f.keys())
-                key_list.sort(key = lambda a: int(re.split(pattern, a)[1].split('_')[0]))
-                
-                for key in key_list:
-                    print("Loading dataset associated with key ", str(key))
-                    y.append(np.array(f[str(key)]))
-                f.close()
-                print("\nClosed ", filename, "\n")
-                continue
-        
-        elif filename.endswith(suffix_data) and not filename.endswith(suffix_label):
-            print("Opening: ", filename, "\n")
-            
-            with h5py.File(filename, 'r') as f:
-                key_list = list(f.keys())
-                key_list.sort(key = lambda a: int(re.split(pattern, a)[1]))
+                key_list.sort(key=lambda a: int(re.split(pattern, a)[1].split('_')[0]))
 
                 for key in key_list:
-                    print("Loading dataset associated with key ", str(key))
+                    # print("Loading dataset associated with key ", str(key))
+                    print(f"Reading label file: " + str(i) + " / " + str(file_count) + ": " + filename + " - Current dataset key: " + str(key) + "                                          ", end="\r")
+                    y.append(np.array(f[str(key)]))
+                f.close()
+                # print("\nClosed ", filename, "\n")
+                continue
+
+        elif filename.endswith(suffix_data) and not filename.endswith(suffix_label):
+            # print("Opening: ", filename, "\n")
+
+            with h5py.File(filename, 'r') as f:
+                key_list = list(f.keys())
+                key_list.sort(key=lambda a: int(re.split(pattern, a)[1]))
+
+                for key in key_list:
+                    # print("Loading dataset associated with key ", str(key))
+                    print(f"Reading data file: " + str(i) + " / " + str(file_count) + ": " + filename + "                         - Current dataset key: " + str(key) + "                                          ", end="\r")
                     X.append(np.array(f[str(key)]))
                 f.close()
-                print("\nClosed ", filename, "\n")
-    
-    return X,y  
+                # print("\nClosed ", filename, "\n")
+
+    # Dummy prints to make space for the next prints
+    print('')
+    return X, y
+
 
 ###
 
@@ -104,21 +111,21 @@ def multiple_hdf5_loader(path_list, pattern='_[A-Z][0-9]{2}_', suffix_data='.h5'
         print(X.shape)
         print(y.shape)
     '''
-    
-    X_full = np.empty((0,3,64,64)) 
-    y_full = np.empty((0,1)) 
+
+    X_full = np.empty((0, 3, 64, 64))
+    y_full = np.empty((0, 1))
 
     for path in path_list:
-
         print("\nIterating over dataset at: ", path)
         X, y = hdf5_loader(path, pattern, suffix_data, suffix_label)
         X = np.asarray(X)
         y = np.asarray(y)
         X_full = np.concatenate((X_full, X), axis=0)
         y_full = np.concatenate((y_full, y), axis=0)
-        print("\nFinished with loading dataset located at: ", path)
+        print("Finished with loading dataset located at: ", path)
 
     return X_full, y_full
+
 
 ###
 
@@ -130,6 +137,7 @@ def sigmoid_binary(ndarr):
     result = np.where(ndarr <= 0.5, 0, 1)
     return result
 
+
 ###
 
 def count_uniques(ndarr):
@@ -139,8 +147,9 @@ def count_uniques(ndarr):
     unique, counts = np.unique(ndarr, return_counts=True)
     result = dict(zip(unique, counts))
     print(result)
-    
+
     return result
+
 
 ###
 
@@ -148,11 +157,11 @@ def normalize_RGB_pixels(ndarr):
     '''normalize RGB pixel values ranging
     from 0-255 into a range of [0,1]
     '''
-    return (ndarr.astype(float)  / 255.0)
+    return (ndarr.astype(float) / 255.0)
+
 
 ###
 
 def check_predicted_classes(labels, predictions):
     '''
     '''
-

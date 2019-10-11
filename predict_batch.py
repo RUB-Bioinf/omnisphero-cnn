@@ -21,8 +21,8 @@ print("Imports done...")
 
 # LOAD MODEL
 ############
-model = load_model('/bph/home/nilfoe/Documents/CNN/results/oligo_final_250/0_custom/custom.h5')
-model.load_weights('/bph/home/nilfoe/Documents/CNN/results/oligo_final_250/0_custom/custom_weights_best.h5')
+model = load_model('/bph/home/nilfoe/Documents/CNN/results/neurons_final_350/0_custom/custom.h5')
+model.load_weights('/bph/home/nilfoe/Documents/CNN/results/neurons_final_350/0_custom/custom_weights_best.h5')
 
 print("Loaded model...")
 
@@ -36,7 +36,7 @@ print("Loaded model...")
 
 dir_list = [
     # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS81_unannotatedData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/oligo/EKB25_unannotatedData_oligo/'
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/neuron/EKB25_unannotatedData_neuron/'
 ]
 
 for folder in dir_list[0:]:
@@ -75,8 +75,8 @@ for folder in dir_list[0:]:
     directory_csv_contents.sort()
 
     print('Saving predictions and Histogram')
-    np.save(path_to_csv + "predictions.npy", label)
-    np.savetxt(path_to_csv + "predictions.csv", label, delimiter=';')
+    np.save(path_to_csv + "all_prediction.npy", label)
+    np.savetxt(path_to_csv + "all_prediction.csv", label, delimiter=';')
 
     hist_pos = label[np.where(label > 0.5)]
     plt.hist(hist_pos, bins='auto')
@@ -99,6 +99,7 @@ for folder in dir_list[0:]:
     plt.title("Histogram: All [Capped]")
     axes = plt.gca()
     axes.set_ylim([0, 2000])
+    axes.set_xlim([0, 1])
     plt.savefig(path_to_csv + '_histogram_all2.png')
     plt.clf()
 

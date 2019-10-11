@@ -23,6 +23,7 @@ from keras.layers import Dense, Input, Conv2D, MaxPooling2D, Flatten, Dropout, B
 from keras.optimizers import Adam, RMSprop, SGD
 from keras import optimizers, regularizers
 from keras.callbacks import Callback
+from keras.callbacks import *
 from keras.utils import *
 from keras.layers import Dense
 from keras.utils.vis_utils import plot_model
@@ -31,16 +32,17 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 from sklearn.metrics import roc_curve, roc_auc_score, auc
 
 from scramblePaths import *
+from misc_omnisphero import *
 
 import matplotlib.pyplot as plt
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 # Custom Module
 ###############
 import sys
 
-sys.path.append('/bph/puredata1/bioinfdata/user/butjos/work/code/misc')
+#sys.path.append('/bph/puredata1/bioinfdata/user/butjos/work/code/misc')
 
 import misc_omnisphero as misc
 
@@ -157,8 +159,8 @@ finalOligos = [
 ]
 
 debugNeurons = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/combinedVal_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/EKB5_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron/combinedVal_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron/EKB5_trainingData_neuron/'
     # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/JK122_trainingData_oligo/',
     # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/JK155_trainingData_oligo/',
     # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/JK156_trainingData_oligo/',
@@ -241,7 +243,7 @@ def omnisphero_CNN(n_classes, input_height, input_width, input_depth, data_forma
 # ROC stuff
 # Source: https://stackoverflow.com/questions/41032551/how-to-compute-receiving-operating-characteristic-roc-and-auc-in-keras
 class plot_callback(Callback):
-    def __init__(self, training_data, validation_data, file_handle):
+    def __init__(self, training_data, validation_data, file_handle,reduce_rate=0.5):
         self.i = 0
         self.x = []
         self.losses = []
@@ -252,6 +254,8 @@ class plot_callback(Callback):
         self.logs = []
 
         self.batchCount = 0
+        self.epochCount = 0
+        self.reduce_rate = reduce_rate
 
     def on_train_begin(self, logs={}):
         f.write('Training start.' + '\n')
@@ -262,6 +266,7 @@ class plot_callback(Callback):
         return
 
     def on_epoch_begin(self, epoch, logs={}):
+        self.epochCount = self.epochCount + 1
         return
 
     def on_epoch_end(self, epoch, logs={}):
@@ -277,26 +282,6 @@ class plot_callback(Callback):
         f.write('Finished Batch: ' + str(self.batchCount) + '\n')
         return
 
-
-# HARDCODED PARAMETERS
-###############
-# training_path_list = [
-#        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS81_trainingData_neuron/',
-#        #'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/FJK125_trainingData_neuron/',
-#        #'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/FJK130_trainingData_neuron/',
-#        #'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK96_trainingData_neuron/',
-#        #'/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS79_BIS-I_NPC2-5_062_trainingData_neuron/'
-#        #TODO
-#            ]
-#
-# validation_path_list = [
-#        '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK122_trainingData_neuron/'
-#       ]
-#
-#
-# label = 'ayy';
-###############
-
 # Initiating dummy variables
 X = 0
 y = 0
@@ -307,9 +292,9 @@ model = 0
 # SCRABLING
 #################
 
-scrambleResults = scramblePaths(pathCandidateList=debugNeurons, validation_count=0, predict_count=1)
+scrambleResults = scramblePaths(pathCandidateList=finalOligos, validation_count=0, predict_count=1)
 # outPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/results/roc_results_vacc/'
-outPath = '/bph/home/nilfoe/Documents/CNN/results/neurons_n2/'
+outPath = '/bph/home/nilfoe/Documents/CNN/results/oligos_final_e1500/'
 
 print('Saving results here: ' + outPath)
 os.makedirs(outPath, exist_ok=True);
@@ -323,14 +308,14 @@ time.sleep(10)
 # HYPERPARAMETERS
 #################
 batch_size = 100
-n_classes = 2
+n_classes = 1
 input_height = 64
 input_width = 64
 input_depth = 3
 data_format = 'channels_last'
 optimizer_name = 'adadelta'
 learn_rate = 0.0001
-epochs = 7
+epochs = 1500
 
 for n in range(len(scrambleResults)):
     # Remove previous iteration
@@ -451,22 +436,28 @@ for n in range(len(scrambleResults)):
         class_weights = compute_class_weight('balanced', np.unique(y), y_order)
         print("Class weights: ", class_weights)
 
-    # TRAINING
-    ##########
+    # CALLBACKS
+    ###########
 
     print('Timestamp: ', gct())
     print('Reminder. Training for label: ' + label)
     f = open(outPathCurrent + label + '_training_progress.txt', 'w+')
     model_checkpoint = ModelCheckpoint(outPathCurrent + label + '_weights_best.h5', monitor='val_loss', verbose=1,
                                        save_best_only=True, mode='min')
+    lrCallBack = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=100, verbose=0, mode='auto', min_delta=0.0001, cooldown=0, min_lr=0)
+
     callbacks_list = [model_checkpoint,
+                      lrCallBack,
                       plot_callback(training_data=(X, y), validation_data=(X_val, y_val), file_handle=f)]
 
+
+    # TRAINING
+    ##########
     history_all = model.fit(X, y,
                             validation_data=(X_val, y_val),
                             callbacks=callbacks_list,
-                            epochs=epochs, batch_size=batch_size
-                            # class_weight=class_weights
+                            epochs=epochs, batch_size=batch_size,
+                            class_weight=class_weights
                             )
 
     history = [np.zeros((epochs, 4), dtype=np.float32)]
@@ -564,7 +555,8 @@ for n in range(len(scrambleResults)):
         plt.hist(label, bins='auto')
         plt.title("Histogram: All [Capped]")
         axes = plt.gca()
-        axes.set_ylim([0, 2000])
+        plt.ylim(0, 2000)
+        plt.xlim(0,1)
         plt.savefig(outPathCurrent + label + '_histogram_all2.png')
         plt.clf()
 

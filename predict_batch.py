@@ -7,22 +7,25 @@ JOSHUA BUTKE, AUGUST 2019
 
 import os
 import sys
-import misc_omnisphero as misc
+import time
+
 import numpy as np
 import pandas as pd
 from keras.models import load_model
 import matplotlib.pyplot as plt
 
-sys.path.append('/bph/puredata1/bioinfdata/user/butjos/work/code/misc')
+# Custom Module
+###############
+import misc_omnisphero as misc
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 print("Imports done...")
 
 # LOAD MODEL
 ############
-model = load_model('/bph/home/nilfoe/Documents/CNN/results/neurons_final_350/0_custom/custom.h5')
-model.load_weights('/bph/home/nilfoe/Documents/CNN/results/neurons_final_350/0_custom/custom_weights_best.h5')
+model = load_model('/bph/home/nilfoe/Documents/CNN/results/neuron_final_sigmodal/0_custom/custom.h5')
+model.load_weights('/bph/home/nilfoe/Documents/CNN/results/neuron_final_sigmodal/0_custom/custom_weights_best.h5')
 
 print("Loaded model...")
 
@@ -35,9 +38,26 @@ print("Loaded model...")
 # print("Constructed directory walker...")
 
 dir_list = [
-    # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS81_unannotatedData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/neuron/EKB25_unannotatedData_neuron/'
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron/ESM31_unannotatedData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron/ESM32_unannotatedData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron/ESM33_unannotatedData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron/ESM34_unannotatedData_neuron/'
+    
+    #'/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/oligo/EKB25_unannotatedData_oligo/'
+    #'/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/neuron/EKB25_unannotatedData_neuron/'
 ]
+
+source_dir = ''
+#source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_batch3/'
+
+if len(source_dir) > 1:
+    additional_dir = misc.get_immediate_subdirectories(source_dir)
+    print('Discovered source dirs: ' + str(len(additional_dir)))
+    for d in additional_dir:
+        dir_list.append(os.path.join(source_dir,d))
+
+print('Predicting experiment count: ' + str(len(dir_list)))
+time.sleep(3)
 
 for folder in dir_list[0:]:
     print('Considering: ' + folder)
@@ -66,52 +86,23 @@ for folder in dir_list[0:]:
     # cleanup / free memory
     del X_to_predict
 
-    # CSV Manipulation
-    ##################
     path_to_csv = str(folder)
     os.chdir(path_to_csv)
     directory_csv = os.fsencode(path_to_csv)
     directory_csv_contents = os.listdir(directory_csv)
     directory_csv_contents.sort()
-
-    print('Saving predictions and Histogram')
-    np.save(path_to_csv + "all_prediction.npy", label)
-    np.savetxt(path_to_csv + "all_prediction.csv", label, delimiter=';')
-
-    hist_pos = label[np.where(label > 0.5)]
-    plt.hist(hist_pos, bins='auto')
-    plt.title("Histogram: Positive")
-    plt.savefig(path_to_csv + '_histogram_1.png')
-    plt.clf()
-
-    hist_neg = label[np.where(label <= 0.5)]
-    plt.hist(hist_neg, bins='auto')
-    plt.title("Histogram: Negative")
-    plt.savefig(path_to_csv + '_histogram_0.png')
-    plt.clf()
-
-    plt.hist(label, bins='auto')
-    plt.title("Histogram: All")
-    plt.savefig(path_to_csv + '_histogram_all.png')
-    plt.clf()
-
-    plt.hist(label, bins='auto')
-    plt.title("Histogram: All [Capped]")
-    axes = plt.gca()
-    axes.set_ylim([0, 2000])
-    axes.set_xlim([0, 1])
-    plt.savefig(path_to_csv + '_histogram_all2.png')
-    plt.clf()
-
     start_point = 0
 
+    # CSV Manipulation
+    ##################
     print('Writing CSVs')
     for f in directory_csv_contents:
         filename = os.fsdecode(f)
         if filename.endswith('.csv') and not filename.endswith('_prediction.csv') and not filename.endswith(
                 '_prediction_test.csv'):
+            
             # reading
-            print('Manipulating: ', filename)
+            print(f'Manipulating: ' + str(filename), end="\r")
             df = pd.read_csv(filename, delimiter=';')
             df_length = len(df['label'])
             df['label'] = binary_label[start_point:start_point + df_length]
@@ -122,6 +113,43 @@ for folder in dir_list[0:]:
 
             # update start point
             start_point += df_length
+
+    print('Saving raw predictions')
+    np.save(path_to_csv + "all_prediction.npy", label)
+    np.savetxt(path_to_csv + "all_prediction.csv", label, delimiter=';')
+
+    if label.size < 35000:
+        print('Saving positive Histogram')
+        hist_pos = label[np.where(label > 0.5)]
+        plt.hist(hist_pos, bins='auto')
+        plt.title("Histogram: Positive")
+        plt.savefig(path_to_csv + '/histogram_1.png')
+        plt.clf()
+
+        print('Saving negative Histogram')
+        hist_neg = label[np.where(label <= 0.5)]
+        plt.hist(hist_neg, bins='auto')
+        plt.title("Histogram: Negative")
+        plt.savefig(path_to_csv + '/histogram_0.png')
+        plt.clf()
+
+        print('Saving whole Histogram')
+        plt.hist(label, bins='auto')
+        plt.title("Histogram: All")
+        plt.savefig(path_to_csv + '/histogram_all.png')
+        plt.clf()
+
+        print('Saving capped Histogram')
+        plt.hist(label, bins='auto')
+        plt.title("Histogram: All [Capped]")
+        axes = plt.gca()
+        axes.set_ylim([0, 2000])
+        axes.set_xlim([0, 1])
+        plt.savefig(path_to_csv + '/histogram_all2.png')
+        plt.clf()
+    else:
+        print('Too many labels predicted. Histogram skipped.')
+
 
 # END OF FILE
 #############

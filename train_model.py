@@ -35,15 +35,12 @@ from scramblePaths import *
 from misc_omnisphero import *
 
 import matplotlib.pyplot as plt
+import sys
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 # Custom Module
 ###############
-import sys
-
-#sys.path.append('/bph/puredata1/bioinfdata/user/butjos/work/code/misc')
-
 import misc_omnisphero as misc
 
 # =========== List of all available neuron experiments on SAS15 ============================================================================
@@ -292,9 +289,10 @@ model = 0
 # SCRABLING
 #################
 
-scrambleResults = scramblePaths(pathCandidateList=finalOligos, validation_count=0, predict_count=1)
+scrambleResults = scramblePaths(pathCandidateList=finalNeurons, validation_count=0, predict_count=1)
 # outPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/results/roc_results_vacc/'
-outPath = '/bph/home/nilfoe/Documents/CNN/results/oligos_final_e1500/'
+#outPath = '/bph/home/nilfoe/Documents/CNN/results/oligos_final_softmax300/'
+outPath = '/bph/home/nilfoe/Documents/CNN/results/neurons_final_softmax400/'
 
 print('Saving results here: ' + outPath)
 os.makedirs(outPath, exist_ok=True);
@@ -308,14 +306,15 @@ time.sleep(10)
 # HYPERPARAMETERS
 #################
 batch_size = 100
-n_classes = 1
+n_classes = 2
 input_height = 64
 input_width = 64
 input_depth = 3
 data_format = 'channels_last'
 optimizer_name = 'adadelta'
 learn_rate = 0.0001
-epochs = 1500
+epochs = 400
+# Erfahrung zeigt: 300 Epochen für Oligos, 400 für Neurons
 
 for n in range(len(scrambleResults)):
     # Remove previous iteration
@@ -457,7 +456,7 @@ for n in range(len(scrambleResults)):
                             validation_data=(X_val, y_val),
                             callbacks=callbacks_list,
                             epochs=epochs, batch_size=batch_size,
-                            class_weight=class_weights
+                            #class_weight=class_weights
                             )
 
     history = [np.zeros((epochs, 4), dtype=np.float32)]

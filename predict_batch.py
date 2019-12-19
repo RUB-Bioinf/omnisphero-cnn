@@ -18,14 +18,20 @@ import matplotlib.pyplot as plt
 ###############
 import misc_omnisphero as misc
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 print("Imports done...")
 
 # LOAD MODEL
 ############
-model = load_model('/bph/home/nilfoe/Documents/CNN/results/neuron_final_sigmodal/0_custom/custom.h5')
-model.load_weights('/bph/home/nilfoe/Documents/CNN/results/neuron_final_sigmodal/0_custom/custom_weights_best.h5')
+#model = load_model('/bph/home/nilfoe/Documents/CNN/results/oligos_final_no81/0_custom/custom.h5')
+#model.load_weights('/bph/home/nilfoe/Documents/CNN/results/oligos_final_no81/0_custom/custom_weights_best.h5')
+
+# MODELS IN USE
+model = load_model('/bph/home/nilfoe/Documents/CNN/results/oligo_final_sigmodal/0_custom/custom.h5')
+model.load_weights('/bph/home/nilfoe/Documents/CNN/results/oligo_final_sigmodal/0_custom/custom_weights_best.h5')
+#model = load_model('/bph/home/nilfoe/Documents/CNN/results/neuron_final_sigmodal/0_custom/custom.h5')
+#model.load_weights('/bph/home/nilfoe/Documents/CNN/results/neuron_final_sigmodal/0_custom/custom_weights_best.h5')
 
 print("Loaded model...")
 
@@ -38,17 +44,22 @@ print("Loaded model...")
 # print("Constructed directory walker...")
 
 dir_list = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron/ESM31_unannotatedData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron/ESM32_unannotatedData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron/ESM33_unannotatedData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron/ESM34_unannotatedData_neuron/'
+    #'/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/ESM31_unannotatedData_oligo/',
+    #'/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/ESM32_unannotatedData_oligo/',
+    #'/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/ESM33_unannotatedData_oligo/',
+    #'/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/ESM34_unannotatedData_oligo/'
     
     #'/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/oligo/EKB25_unannotatedData_oligo/'
     #'/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/neuron/EKB25_unannotatedData_neuron/'
 ]
 
 source_dir = ''
-#source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_batch3/'
+source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_6/'
+#source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_6/'
+
+#source_dir2 = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_batch5/'
+#source_dir3 = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_batch6/'
+#source_dir4 = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_batch7/'
 
 if len(source_dir) > 1:
     additional_dir = misc.get_immediate_subdirectories(source_dir)
@@ -56,18 +67,41 @@ if len(source_dir) > 1:
     for d in additional_dir:
         dir_list.append(os.path.join(source_dir,d))
 
-print('Predicting experiment count: ' + str(len(dir_list)))
-time.sleep(3)
+#if len(source_dir2) > 1:
+#    additional_dir = misc.get_immediate_subdirectories(source_dir2)
+#    print('Discovered source dirs: ' + str(len(additional_dir)))
+#    for d in additional_dir:
+#        dir_list.append(os.path.join(source_dir2,d))
+
+#if len(source_dir3) > 1:
+#    additional_dir = misc.get_immediate_subdirectories(source_dir3)
+#    print('Discovered source dirs: ' + str(len(additional_dir)))
+#    for d in additional_dir:
+#        dir_list.append(os.path.join(source_dir3,d))
+
+#if len(source_dir4) > 1:
+#    additional_dir = misc.get_immediate_subdirectories(source_dir4)
+#    print('Discovered source dirs: ' + str(len(additional_dir)))
+#    for d in additional_dir:
+#        dir_list.append(os.path.join(source_dir4,d))
+
+gpMax = len(dir_list)
+gpCurrent = 0
+print('Predicting experiment count: ' + str(gpMax))
+time.sleep(6)
 
 for folder in dir_list[0:]:
     print('Considering: ' + folder)
+    print('Prediction progress: ' + str(gpCurrent) + '/' + str(gpMax))
+
+    gpCurrent = gpCurrent + 1
     if "unannotated" in folder:
         pass
     else:
         continue
 
     # load data
-    X_to_predict, _ = misc.hdf5_loader(str(folder))
+    X_to_predict, _ = misc.hdf5_loader(str(folder),gpCurrent=gpCurrent,gpMax=gpMax)
 
     # process data
     X_to_predict = np.asarray(X_to_predict)
@@ -78,6 +112,7 @@ for folder in dir_list[0:]:
     print(X_to_predict.shape)
 
     # generate prediction
+    print('Prediction progress: ' + str(gpCurrent) + '/' + str(gpMax))
     print('Generating predictions...')
     label = model.predict(X_to_predict, verbose=1)
     binary_label = misc.sigmoid_binary(label)

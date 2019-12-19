@@ -143,7 +143,7 @@ finalOligos = [
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/combinedVal_trainingData_oligo/',
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/EKB5_trainingData_oligo/',
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/ELS79_BIS-I_NPC2-5_062_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/ELS81_trainingData_oligo/',
+    #'/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/ELS81_trainingData_oligo/',
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/ESM9_trainingData_oligo/',
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/ESM10_trainingData_oligo/',
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/JK95_trainingData_oligo/',
@@ -289,10 +289,10 @@ model = 0
 # SCRABLING
 #################
 
-scrambleResults = scramblePaths(pathCandidateList=finalNeurons, validation_count=0, predict_count=1)
-# outPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/results/roc_results_vacc/'
-#outPath = '/bph/home/nilfoe/Documents/CNN/results/oligos_final_softmax300/'
-outPath = '/bph/home/nilfoe/Documents/CNN/results/neurons_final_softmax400/'
+scrambleResults = scramblePaths(pathCandidateList=debugNeurons, validation_count=0, predict_count=1)
+# outPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/results/roc_results_no81/'
+outPath = '/bph/home/nilfoe/Documents/CNN/results/oligos_debug/'
+#outPath = '/bph/home/nilfoe/Documents/CNN/results/neurons_final_softmax400/'
 
 print('Saving results here: ' + outPath)
 os.makedirs(outPath, exist_ok=True);
@@ -306,14 +306,14 @@ time.sleep(10)
 # HYPERPARAMETERS
 #################
 batch_size = 100
-n_classes = 2
+n_classes = 1
 input_height = 64
 input_width = 64
 input_depth = 3
 data_format = 'channels_last'
 optimizer_name = 'adadelta'
 learn_rate = 0.0001
-epochs = 400
+epochs = 500
 # Erfahrung zeigt: 300 Epochen für Oligos, 400 für Neurons
 
 for n in range(len(scrambleResults)):
@@ -346,7 +346,7 @@ for n in range(len(scrambleResults)):
     # TRAINING DATA
     ###############
     print("Traing data size: " + str(len(training_path_list)))
-    X, y = misc.multiple_hdf5_loader(training_path_list)  # load datasets
+    X, y = misc.multiple_hdf5_loader(training_path_list,gpCurrent=n,gpMax=len(scrambleResults))  # load datasets
 
     print(y.shape)
     if n_classes == 2:
@@ -378,7 +378,7 @@ for n in range(len(scrambleResults)):
     # VALIDATION DATA
     #################
     print("Validation data size: " + str(len(validation_path_list)))
-    X_val, y_val = misc.multiple_hdf5_loader(validation_path_list)
+    X_val, y_val = misc.multiple_hdf5_loader(validation_path_list,gpCurrent=n,gpMax=len(scrambleResults))
     print(y_val.shape)
     if n_classes == 2:
         y_val = np.append(y_val, 1 - y_val, axis=1)
@@ -456,7 +456,7 @@ for n in range(len(scrambleResults)):
                             validation_data=(X_val, y_val),
                             callbacks=callbacks_list,
                             epochs=epochs, batch_size=batch_size,
-                            #class_weight=class_weights
+                            class_weight=class_weights
                             )
 
     history = [np.zeros((epochs, 4), dtype=np.float32)]

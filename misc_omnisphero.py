@@ -21,7 +21,7 @@ import re
 # FUNCTION DEFINITONS
 #####################
 
-def hdf5_loader(path, pattern='_[A-Z][0-9]{2}_', suffix_data='.h5', suffix_label='_label.h5'):
+def hdf5_loader(path, pattern='_[A-Z][0-9]{2}_', suffix_data='.h5', suffix_label='_label.h5', gpCurrent = 0, gpMax = 0):
     '''Helper function which loads all datasets from a hdf5 file in
     a specified file at a specified path.
 
@@ -67,7 +67,7 @@ def hdf5_loader(path, pattern='_[A-Z][0-9]{2}_', suffix_data='.h5', suffix_label
 
                 for key in key_list:
                     # print("Loading dataset associated with key ", str(key))
-                    print(f"Reading label file: " + str(i) + " / " + str(file_count) + ": " + filename + " - Current dataset key: " + str(key) + "                                          ", end="\r")
+                    print(f"Reading label file: " + str(i) + " / " + str(file_count) + ": " + filename + " - Current dataset key: " + str(key) + " [" + str(gpCurrent) + "/" + str(gpMax)+"]   ", end="\r")
                     y.append(np.array(f[str(key)]))
                 f.close()
                 # print("\nClosed ", filename, "\n")
@@ -82,7 +82,7 @@ def hdf5_loader(path, pattern='_[A-Z][0-9]{2}_', suffix_data='.h5', suffix_label
 
                 for key in key_list:
                     # print("Loading dataset associated with key ", str(key))
-                    print(f"Reading data file: " + str(i) + " / " + str(file_count) + ": " + filename + "                         - Current dataset key: " + str(key) + "                                          ", end="\r")
+                    print(f"Reading data file: " + str(i) + " / " + str(file_count) + ": " + filename + "                         - Current dataset key: " + str(key) + " [" + str(gpCurrent) + "/" + str(gpMax)+"]   ", end="\r")
                     X.append(np.array(f[str(key)]))
                 f.close()
                 # print("\nClosed ", filename, "\n")

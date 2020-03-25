@@ -94,7 +94,7 @@ def hdf5_loader(path, pattern='_[A-Z][0-9]{2}_', suffix_data='.h5', suffix_label
 
 ###
 
-def multiple_hdf5_loader(path_list, pattern='_[A-Z][0-9]{2}_', suffix_data='.h5', suffix_label='_label.h5'):
+def multiple_hdf5_loader(path_list, pattern='_[A-Z][0-9]{2}_', suffix_data='.h5', suffix_label='_label.h5',gpCurrent=0,gpMax=0):
     '''Helper function which loads all datasets from targeted hdf5 files in
     a specified folder. Returns X and y arrays containing all of them.
     This function uses hdf5_loader.
@@ -122,7 +122,7 @@ def multiple_hdf5_loader(path_list, pattern='_[A-Z][0-9]{2}_', suffix_data='.h5'
         y = np.asarray(y)
         X_full = np.concatenate((X_full, X), axis=0)
         y_full = np.concatenate((y_full, y), axis=0)
-        print("Finished with loading dataset located at: ", path)
+        print("Finished with loading dataset located at: ", path + " [" + str(gpCurrent) + "/" + str(gpMax)+"]")
 
     return X_full, y_full
 

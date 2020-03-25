@@ -10,6 +10,7 @@ import numpy as np
 import h5py
 import os
 import time
+import math
 
 from datetime import datetime
 
@@ -34,10 +35,13 @@ from sklearn.metrics import roc_curve, roc_auc_score, auc
 from scramblePaths import *
 from misc_omnisphero import *
 
+from keras.preprocessing.image import *
 import matplotlib.pyplot as plt
 import sys
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+gpuIndexString = "0"
+#gpuIndexString = "0,1,2"
+os.environ["CUDA_VISIBLE_DEVICES"] = gpuIndexString
 
 # Custom Module
 ###############
@@ -78,20 +82,6 @@ allNeurons = [
 ]
 
 allOligos = [
-
-    # PUREDATA 4 PATHS
-    # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/ELS81_trainingData_oligo/',
-    # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/ELS79_BIS-I_NPC2-5_062_trainingData_oligo/',
-    # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK122_trainingData_oligo/',
-    # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK95_trainingData_oligo/',
-    # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK153_trainingData_oligo/',
-    # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK155_trainingData_oligo/',
-    # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK156_trainingData_oligo/',
-    # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/EKB5_trainingData_oligo/',
-    # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/ESM9_trainingData_oligo/',
-    # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/ESM10_trainingData_oligo/',
-    # '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/MP70_trainingData_oligo/'
-
     # Defect experiments
     # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK95_trainingData_oligo/',
 
@@ -126,13 +116,13 @@ allOligos = [
 
 # FINAL NERON & OLIGO PATHS
 finalNeurons = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron/combinedVal_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron/EKB5_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron/ELS79_BIS-I_NPC2-5_062_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron/ELS81_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron/ESM9_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron/FJK125_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron/FJK130_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron/combinedVal_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron/EKB5_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron/ELS79_BIS-I_NPC2-5_062_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron/ELS81_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron/ESM9_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron/FJK125_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron/FJK130_trainingData_neuron/',
 
     # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron/JK96_trainingData_neuron/',
 
@@ -140,29 +130,38 @@ finalNeurons = [
 ]
 
 finalOligos = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/combinedVal_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/EKB5_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/ELS79_BIS-I_NPC2-5_062_trainingData_oligo/',
-    #'/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/ELS81_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/ESM9_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/ESM10_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/JK95_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/JK122_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/JK155_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/JK156_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/MP66_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/MP67_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/MP70_trainingData_oligo/'
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/combinedVal_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/EKB5_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/ELS79_BIS-I_NPC2-5_062_trainingData_oligo/',
+    #'/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/ELS81_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/ESM9_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/ESM10_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/JK95_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/JK122_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/JK155_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/JK156_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/MP66_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/MP67_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/MP70_trainingData_oligo/'
 ]
 
 debugNeurons = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron/combinedVal_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron/EKB5_trainingData_neuron/'
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_debug/combinedVal_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_debug/EKB5_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_debug/SM9_trainingData_neuron/'
+]
+
+debugOligos = [
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_debug/combinedVal_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_debug/EKB5_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_debug/ELS81_trainingData_oligo/'
     # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/JK122_trainingData_oligo/',
     # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/JK155_trainingData_oligo/',
     # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/JK156_trainingData_oligo/',
 ]
 
+testDataPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/oligo/EKB25_trainingData_oligo/'
+#testDataPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/neuron/EKB25_trainingData_neuron/'
 
 def gct():
     return datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -179,9 +178,9 @@ def omnisphero_CNN(n_classes, input_height, input_width, input_depth, data_forma
     # Convolutional Blocks (FEATURE EXTRACTION)
 
     # Conv Block 1
-    c1 = Conv2D(32, (3, 3), activation='relu', padding='same', name='block1_conv1', data_format=data_format)(img_input)
+    c1 = Conv2D(32, (3, 3), kernel_initializer = 'he_uniform', activation='relu', padding='same', name='block1_conv1', data_format=data_format)(img_input)
     bn1 = BatchNormalization(name='batch_norm_1')(c1)
-    c2 = Conv2D(32, (3, 3), activation='relu', padding='same', name='block1_conv2', data_format=data_format)(bn1)
+    c2 = Conv2D(32, (3, 3), kernel_initializer = 'he_uniform', activation='relu', padding='same', name='block1_conv2', data_format=data_format)(bn1)
     bn2 = BatchNormalization(name='batch_norm_2')(c2)
     p1 = MaxPooling2D((2, 2), name='block1_pooling', data_format=data_format)(bn2)
     block1 = p1
@@ -198,32 +197,32 @@ def omnisphero_CNN(n_classes, input_height, input_width, input_depth, data_forma
     # block1 = p1
 
     # Conv Block 2
-    c3 = Conv2D(64, (3, 3), activation='relu', padding='same', name='block2_conv1', data_format=data_format)(block1)
+    c3 = Conv2D(64, (3, 3), kernel_initializer = 'he_uniform', activation='relu', padding='same', name='block2_conv1', data_format=data_format)(block1)
     bn3 = BatchNormalization(name='batch_norm_3')(c3)
-    c4 = Conv2D(64, (3, 3), activation='relu', padding='same', name='block2_conv2', data_format=data_format)(bn3)
+    c4 = Conv2D(64, (3, 3), kernel_initializer = 'he_uniform', activation='relu', padding='same', name='block2_conv2', data_format=data_format)(bn3)
     bn4 = BatchNormalization(name='batch_norm_4')(c4)
     p2 = MaxPooling2D((2, 2), name='block2_pooling', data_format='channels_last')(bn4)
     block2 = p2
 
     # Conv Block 3
-    c5 = Conv2D(128, (3, 3), activation='relu', padding='same', name='block3_conv1', data_format=data_format)(block2)
+    c5 = Conv2D(128, (3, 3), kernel_initializer = 'he_uniform', activation='relu', padding='same', name='block3_conv1', data_format=data_format)(block2)
     bn5 = BatchNormalization(name='batch_norm_5')(c5)
-    c6 = Conv2D(128, (3, 3), activation='relu', padding='same', name='block3_conv2', data_format=data_format)(bn5)
+    c6 = Conv2D(128, (3, 3), kernel_initializer = 'he_uniform', activation='relu', padding='same', name='block3_conv2', data_format=data_format)(bn5)
     bn6 = BatchNormalization(name='batch_norm_6')(c6)
     p3 = MaxPooling2D((2, 2), name='block3_pooling', data_format='channels_last')(bn6)
     block3 = p3
 
     # Conv Block 4
-    c7 = Conv2D(256, (3, 3), activation='relu', padding='same', name='block4_conv1', data_format=data_format)(block3)
+    c7 = Conv2D(256, (3, 3), kernel_initializer = 'he_uniform', activation='relu', padding='same', name='block4_conv1', data_format=data_format)(block3)
     bn7 = BatchNormalization(name='batch_norm_7')(c7)
-    c8 = Conv2D(256, (3, 3), activation='relu', padding='same', name='block4_conv2', data_format=data_format)(bn7)
+    c8 = Conv2D(256, (3, 3), kernel_initializer = 'he_uniform', activation='relu', padding='same', name='block4_conv2', data_format=data_format)(bn7)
     bn8 = BatchNormalization(name='batch_norm_8')(c8)
     p4 = MaxPooling2D((2, 2), name='block4_pooling', data_format='channels_last')(bn8)
     block4 = p4
 
     # Fully-Connected Block (CLASSIFICATION)
     flat = Flatten(name='flatten')(block3)
-    fc1 = Dense(256, activation='relu', name='fully_connected1')(flat)
+    fc1 = Dense(256, kernel_initializer = 'he_uniform', activation='relu', name='fully_connected1')(flat)
     drop_fc_1 = Dropout(0.5)(fc1)
 
     if n_classes == 1:
@@ -289,9 +288,9 @@ model = 0
 # SCRABLING
 #################
 
-scrambleResults = scramblePaths(pathCandidateList=debugNeurons, validation_count=0, predict_count=1)
+scrambleResults = scramblePaths(pathCandidateList=finalOligos, validation_count=0, predict_count=1)
 # outPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/results/roc_results_no81/'
-outPath = '/bph/home/nilfoe/Documents/CNN/results/oligos_debug/'
+outPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/models/oligo_fieldTest_WObrightness_longer/'
 #outPath = '/bph/home/nilfoe/Documents/CNN/results/neurons_final_softmax400/'
 
 print('Saving results here: ' + outPath)
@@ -310,17 +309,31 @@ n_classes = 1
 input_height = 64
 input_width = 64
 input_depth = 3
+lossEnum = 'binary_crossentropy'
 data_format = 'channels_last'
 optimizer_name = 'adadelta'
 learn_rate = 0.0001
-epochs = 500
+epochs = 3000
 # Erfahrung zeigt: 300 Epochen für Oligos, 400 für Neurons
+
+img_dpi = 450
+genSeedTrain = 737856000
+genSeedVal = genSeedTrain + 1
 
 for n in range(len(scrambleResults)):
     # Remove previous iteration
     del X
     del y
     del model
+
+    # AUGMENTATION
+    datagen = ImageDataGenerator(
+        rotation_range=360,
+        validation_split=0.0,
+        #brightness_range=[1.0,1.0],
+        horizontal_flip=True,
+        vertical_flip=True
+        )
 
     scrambles = scrambleResults[n]
     label = scrambles['label']
@@ -329,7 +342,12 @@ for n in range(len(scrambleResults)):
     outPathCurrent = outPath + str(n) + '_' + label + os.sep
     os.makedirs(outPathCurrent, exist_ok=True);
 
-    f = open(outPathCurrent + label + '_training_info.txt', 'w+')
+    augmentPath = outPathCurrent + 'augments' + os.sep
+    figPath = outPathCurrent + 'fig' + os.sep
+    os.makedirs(augmentPath, exist_ok=True);
+    os.makedirs(figPath, exist_ok=True);
+
+    f = open(outPathCurrent + 'training_info.txt', 'w+')
     f.write('Label: ' + label + '\nTraining paths:\n')
     for i in range(len(training_path_list)):
         f.write(training_path_list[i] + '\n')
@@ -374,6 +392,7 @@ for n in range(len(scrambleResults)):
     # np.savez('/bph/puredata4/bioinfdata/work/omnisphero/CNN/temp/temp2', X, y)
 
     X = misc.normalize_RGB_pixels(X)  # preprocess data
+    datagen.fit(X)
 
     # VALIDATION DATA
     #################
@@ -397,17 +416,31 @@ for n in range(len(scrambleResults)):
     # CONSTRUCTION
     ##############
 
+    steps_per_epoch = math.nan
     print("Building model...")
+    gpuIndexes = list(gpuIndexString.replace(",",""))
+    gpuIndexCount = len(gpuIndexes)
+    print("Visible GPUs: '" + gpuIndexString + "'. Count: " + str(gpuIndexCount))
+
     model = omnisphero_CNN(n_classes, input_height, input_width, input_depth, data_format)
-    model.compile(loss='binary_crossentropy', optimizer=SGD(lr=learn_rate), metrics=['accuracy'])
+    if gpuIndexCount > 1:
+        model = multi_gpu_model(model, gpus=gpuIndexCount)
+        steps_per_epoch=len(X) / epochs
+        print("Model has been set up to run on multiple GPUs.")
+        print("Steps per epoch: " + str(steps_per_epoch))
+
+    model.compile(loss=lossEnum, optimizer=SGD(lr=learn_rate), metrics=['accuracy'])
     # model.compile(loss='mse', optimizer='adam', metrics=['mean_squared_error'])
     model.summary()
     print("Model output shape: ", model.output_shape)
     # plot_model(model, to_file=outPathCurrent + label + '_model.png', show_shapes=True, show_layer_names=True)
-    f = open(outPathCurrent + label + '_model.txt', 'w+')
+    f = open(outPathCurrent + 'model.txt', 'w+')
 
+    f.write('Label: ' + label + '\n')
     f.write('Optimizer: SGD\n')
-    f.write('Loss: binary_cross-entropy\n')
+    f.write('Loss: ' + lossEnum + '\n')
+    f.write('GPUs: ' + gpuIndexString + '\n')
+    f.write('Steps per epoch: ' + str(steps_per_epoch) + '\n')
     f.write('Model shape: ' + str(model.output_shape) + '\n')
     f.write('Batch size: ' + str(batch_size) + '\n')
     f.write('Classes: ' + str(n_classes) + '\n')
@@ -423,7 +456,7 @@ for n in range(len(scrambleResults)):
     #        print(s, file=f)
     # model.summary(print_fn=myprint)
 
-    f = open(outPathCurrent + label + '_model.json', 'w+')
+    f = open(outPathCurrent + 'model.json', 'w+')
     f.write(model.to_json())
     f.close()
 
@@ -435,28 +468,52 @@ for n in range(len(scrambleResults)):
         class_weights = compute_class_weight('balanced', np.unique(y), y_order)
         print("Class weights: ", class_weights)
 
+    logOutPath = outPathCurrent + 'training_log.csv'
+    f = open(logOutPath, 'w+')
+    f.write(gct() + '\nEpoch;Accuracy;Loss;??;Validation Accuracy; Validation Loss\n')
+    f.close()
+
     # CALLBACKS
     ###########
 
+    weights_best_filename = outPathCurrent + 'weights_best.h5'
     print('Timestamp: ', gct())
     print('Reminder. Training for label: ' + label)
-    f = open(outPathCurrent + label + '_training_progress.txt', 'w+')
-    model_checkpoint = ModelCheckpoint(outPathCurrent + label + '_weights_best.h5', monitor='val_loss', verbose=1,
+    print('Saving model here: ' + outPathCurrent)
+    f = open(outPathCurrent + 'training_progress.txt', 'w+')
+    model_checkpoint = ModelCheckpoint(weights_best_filename, monitor='val_loss', verbose=1,
                                        save_best_only=True, mode='min')
-    lrCallBack = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=100, verbose=0, mode='auto', min_delta=0.0001, cooldown=0, min_lr=0)
+    lrCallBack = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=60, verbose=0, mode='auto', min_delta=0.0001, cooldown=0, min_lr=0)
+    csv_logger = CSVLogger(logOutPath, separator=';', append=True)
 
     callbacks_list = [model_checkpoint,
                       lrCallBack,
+                      csv_logger,
                       plot_callback(training_data=(X, y), validation_data=(X_val, y_val), file_handle=f)]
 
 
     # TRAINING
     ##########
-    history_all = model.fit(X, y,
+    #history_all = model.fit(X, y,
+    #                        validation_data=(X_val, y_val),
+    #                        callbacks=callbacks_list,
+    #                        epochs=epochs,
+    #                        batch_size=batch_size,
+    #                        class_weight=class_weights
+    #                        )
+
+    history_all = model.fit_generator(datagen.flow(
+                                                X,y,
+                                                batch_size=batch_size,
+                                                #save_to_dir=augmentPath,
+                                                #save_prefix='aug'
+                                                ),
                             validation_data=(X_val, y_val),
                             callbacks=callbacks_list,
-                            epochs=epochs, batch_size=batch_size,
-                            class_weight=class_weights
+                            epochs=epochs,
+                            #batch_size=batch_size,
+                            #class_weight=class_weights,
+                            steps_per_epoch=len(X) / epochs
                             )
 
     history = [np.zeros((epochs, 4), dtype=np.float32)]
@@ -471,14 +528,15 @@ for n in range(len(scrambleResults)):
 
     print('Timestamp: ', gct())
 
-    model.save(outPathCurrent + label + '.h5')
-    model.save_weights(outPathCurrent + label + '_weights.h5')
-    print('Saved model: ' + outPathCurrent + label)
+    model.save(outPathCurrent + 'model.h5')
+    model.save_weights(outPathCurrent + 'weights.h5')
+    print('Saved model: ' + outPathCurrent + 'model.h5')
 
     print('Loading best weights again.')
-    model.load_weights(outPathCurrent + label + '_weights_best.h5')
+    model.load_weights(weights_best_filename)
 
     # Validate the trained model.
+    print('Evaluating trained data...')
     scores = model.evaluate(X_val, y_val, verbose=1)
     print('Test loss:', scores[0])
     print('Test accuracy:', scores[1])
@@ -493,7 +551,9 @@ for n in range(len(scrambleResults)):
     plt.xlabel('Epoch')
     plt.legend(['Train', 'Validation'], loc='best')
 
-    plt.savefig(outPathCurrent + label + '_accuracy.png')
+    plt.savefig(figPath + 'accuracy.png', dpi=img_dpi)
+    plt.savefig(figPath + 'accuracy.svg', dpi=img_dpi, transparent=True)
+    plt.savefig(figPath + 'accuracy.pdf', dpi=img_dpi, transparent=True)
     plt.clf()
     print('Saved accuracy.')
 
@@ -505,50 +565,83 @@ for n in range(len(scrambleResults)):
     plt.xlabel('Epoch')
     plt.legend(['Train', 'Validation'], loc='best')
 
-    plt.savefig(outPathCurrent + label + '_loss.png')
+    plt.savefig(figPath + 'loss.png', dpi=img_dpi)
+    plt.savefig(figPath + 'loss.pdf', dpi=img_dpi, transparent=True)
+    plt.savefig(figPath + 'loss.svg', dpi=img_dpi, transparent=True)
     plt.clf()
     print('Saved loss.')
 
     # SAVING HISTORY
-    np.save(outPathCurrent + label + "_history.npy", history)
+    np.save(outPathCurrent + "history.npy", history)
     print('Saved history.')
 
+    # SAVING ON MEMORY
+    del X_val
+    del X
+    del y
+
+    # TEST DATA
+    #################
+    print('Loading Test data: ' + testDataPath)
+    y_test = np.empty((0, 1))
+    X_test, y_test = misc.hdf5_loader(testDataPath,gpCurrent=1,gpMax=1)
+    print('Done. Preprocessing test data.')
+    y_test = np.asarray(y_test)
+    y_test = y_test.astype(np.int)
+
+    X_test = np.asarray(X_test)
+    print(X_test.shape)
+    X_test = np.moveaxis(X_test, 1, 3)
+    X_test = misc.normalize_RGB_pixels(X_test)
+
+    print("Loaded test data has shape: ")
+    print(X_test.shape)
+    print(y_test.shape)
+    #################
+
     # ROC Curve
-    print('Calculating roc curve.')
     try:
-        y_pred_roc = model.predict(X_val)  # .ravel()
-        fpr_roc, tpr_roc, thresholds_roc = roc_curve(y_val, y_pred_roc)
+        print('Trying to predict test data')
+        y_pred_roc = model.predict(X_test)  # .ravel()
+
+        print('Calculating roc curve.')
+        fpr_roc, tpr_roc, thresholds_roc = roc_curve(y_test, y_pred_roc)
+
+        print('Calculating AUC.')
         auc_roc = auc(fpr_roc, tpr_roc)
 
+        print('Plotting roc curve.')
         plt.plot([0, 1], [0, 1], 'k--')
         plt.plot(fpr_roc, tpr_roc, label='ROC (area = {:.3f})'.format(auc_roc))
         plt.xlabel('False positive rate')
         plt.ylabel('True positive rate')
         plt.title('ROC curve')
         plt.legend(loc='best')
-        plt.savefig(outPathCurrent + label + '_roc.png')
+        plt.savefig(figPath + 'roc.png', dpi=img_dpi)
+        plt.savefig(figPath + 'roc.pdf', dpi=img_dpi, transparent=True)
+        plt.savefig(figPath + 'roc.svg', dpi=img_dpi, transparent=True)
         plt.clf()
 
-        np.save(outPathCurrent + label + "_roc_predictions.npy", y_pred_roc)
-        np.savetxt(outPathCurrent + label + "_roc_predictions.csv", y_pred_roc, delimiter=';')
+        np.save(outPathCurrent + "roc_predictions.npy", y_pred_roc)
+        np.savetxt(outPathCurrent + "roc_predictions.csv", y_pred_roc, delimiter=';')
 
         # HISTOGRAM
 
         hist_pos = y_pred_roc[np.where(y_pred_roc > 0.5)]
         plt.hist(hist_pos, bins='auto')
         plt.title("Histogram: Positive")
-        plt.savefig(outPathCurrent + label + '_histogram_1.png')
+        plt.savefig(figPath + 'histogram_1.png', dpi=img_dpi)
         plt.clf()
 
         hist_neg = y_pred_roc[np.where(y_pred_roc <= 0.5)]
         plt.hist(hist_neg, bins='auto')
         plt.title("Histogram: Negative")
-        plt.savefig(outPathCurrent + label + '_histogram_0.png')
+        plt.savefig(figPath + 'histogram_0.png', dpi=img_dpi)
         plt.clf()
 
         plt.hist(y_pred_roc, bins='auto')
         plt.title("Histogram: All")
-        plt.savefig(outPathCurrent + label + '_histogram_all.png')
+        plt.savefig(figPath + 'histogram_all.png', dpi=img_dpi)
         plt.clf()
 
         plt.hist(label, bins='auto')
@@ -556,13 +649,12 @@ for n in range(len(scrambleResults)):
         axes = plt.gca()
         plt.ylim(0, 2000)
         plt.xlim(0,1)
-        plt.savefig(outPathCurrent + label + '_histogram_all2.png')
+        plt.savefig(figPath + 'histogram_all2.png', dpi=img_dpi)
         plt.clf()
-
     except Exception as e:
         # Printing the exception message to file.
         print("Failed to calculate roc curve for: " + label + ".")
-        f = open(outPathCurrent + label + "_rocError.txt", 'w+')
+        f = open(figPath + "rocError.txt", 'w+')
         f.write(str(e))
 
         try:
@@ -570,10 +662,14 @@ for n in range(len(scrambleResults)):
             exc_info = sys.exc_info()
             f.write('\n')
             f.write(str(exc_info))
-        finally:
+        except Exception as e2:
+            print('Failed to write the whole stack trace into the error file. Reason:')
+            print(str(e2))
             pass
 
         f.close()
+
+    del X_test
 
 # END OF FILE
 #############

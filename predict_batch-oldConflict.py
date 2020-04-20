@@ -22,38 +22,53 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 print("Imports done...")
 
+# LOAD MODEL
+############
+
 # MODELS IN USE
-#modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/results/oligo_final_sigmodal/0_custom/'
-modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/results/neuron_final_sigmodal/0_custom/'
+#model = load_model('/bph/home/nilfoe/Documents/CNN/results/oligo_final_sigmodal/0_custom/')
+#model.load_weights('/bph/home/nilfoe/Documents/CNN/results/oligo_final_sigmodal/0_custom/')
+#model = load_model('/bph/home/nilfoe/Documents/CNN/results/neuron_final_sigmodal/0_custom/')
+#model.load_weights('/bph/home/nilfoe/Documents/CNN/results/neuron_final_sigmodal/0_custom/')
 
 # MODELS TO BE VALIDATED
-#modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/oligo_fieldTest_WObrightness_longer/0_custom/'
-print('Loading model: '+ modelSourcePath)
+modelSourcePath = 'prodi/bioinf/bioinfdata/work/omnisphero/CNN/models/oligo_unchanged/0_custom/'
 
 # LOADING MODELS
-if os.path.exists(modelSourcePath + 'custom.h5'):
-    model = load_model(modelSourcePath + 'custom.h5')
-    model.load_weights(modelSourcePath + 'custom_weights_best.h5')
-else:
-    model = load_model(modelSourcePath + 'model.h5')
-    model.load_weights(modelSourcePath + 'weights_best.h5')
+model = load_model(modelSourcePath + 'custom.h5')
+model.load_weights(modelSourcePath + 'custom_weights_best.h5')
 
 print("Loaded model...")
 
 # MAIN LOOP
 ###########
-dir_list = []
+
+# path = '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/wholeWell/neuron/'
+# construct directory walker
+# dir_list = [x[0] for x in os.walk(path)]
+# print("Constructed directory walker...")
+
+dir_list = [
+    #'/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/ESM31_unannotatedData_oligo/',
+    #'/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/ESM32_unannotatedData_oligo/',
+    #'/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/ESM33_unannotatedData_oligo/',
+    #'/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/ESM34_unannotatedData_oligo/'
+    
+    #'/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/oligo/EKB25_unannotatedData_oligo/'
+    #'/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/neuron/EKB25_unannotatedData_neuron/'
+]
+
 source_dir = ''
-#source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_27/'
-source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_27/'
+source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_wholeWell/'
+#source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_22/'
+
+#source_dir2 = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_batch5/'
+#source_dir3 = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_batch6/'
+#source_dir4 = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_batch7/'
 
 ### To validate, use these whole well experiments:
 #source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/oligo/unannotated/'
 #source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/neuron/unannotated/'
-
-# Source dir debugs
-#source_dir = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/debug/2020_mar_set_oligo'
-#source_dir = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/debug/2020_mar_set_neuron'
 
 if len(source_dir) > 1:
     additional_dir = misc.get_immediate_subdirectories(source_dir)
@@ -61,11 +76,27 @@ if len(source_dir) > 1:
     for d in additional_dir:
         dir_list.append(os.path.join(source_dir,d))
 
+#if len(source_dir2) > 1:
+#    additional_dir = misc.get_immediate_subdirectories(source_dir2)
+#    print('Discovered source dirs: ' + str(len(additional_dir)))
+#    for d in additional_dir:
+#        dir_list.append(os.path.join(source_dir2,d))
+
+#if len(source_dir3) > 1:
+#    additional_dir = misc.get_immediate_subdirectories(source_dir3)
+#    print('Discovered source dirs: ' + str(len(additional_dir)))
+#    for d in additional_dir:
+#        dir_list.append(os.path.join(source_dir3,d))
+
+#if len(source_dir4) > 1:
+#    additional_dir = misc.get_immediate_subdirectories(source_dir4)
+#    print('Discovered source dirs: ' + str(len(additional_dir)))
+#    for d in additional_dir:
+#        dir_list.append(os.path.join(source_dir4,d))
+
 gpMax = len(dir_list)
 gpCurrent = 0
 print('Predicting experiment count: ' + str(gpMax))
-
-print('Waiting. Prediction will start soon! Buckle up!')
 time.sleep(6)
 
 for folder in dir_list[0:]:
@@ -86,7 +117,7 @@ for folder in dir_list[0:]:
     print('Loaded data at: ', str(folder))
     print(X_to_predict.shape)
     X_to_predict = np.moveaxis(X_to_predict, 1, 3)
-    #X_to_predict = misc.normalize_RGB_pixels(X_to_predict)
+    X_to_predict = misc.normalize_RGB_pixels(X_to_predict)
     print(X_to_predict.shape)
 
     # generate prediction
@@ -131,7 +162,7 @@ for folder in dir_list[0:]:
     np.save(path_to_csv + "all_prediction.npy", label)
     np.savetxt(path_to_csv + "all_prediction.csv", label, delimiter=';')
 
-    if label.size < 35000:
+    if label.size < 35000 and False:
         print('Saving positive Histogram')
         hist_pos = label[np.where(label > 0.5)]
         plt.hist(hist_pos, bins='auto')

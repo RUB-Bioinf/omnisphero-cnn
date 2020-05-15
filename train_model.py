@@ -32,15 +32,17 @@ from keras.utils.vis_utils import plot_model
 from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 
 from sklearn.metrics import roc_curve, roc_auc_score, auc
+from sklearn.metrics import *
 
 from scramblePaths import *
 from misc_omnisphero import *
+from sklearn.utils.class_weight import compute_class_weight
 
 from keras.preprocessing.image import *
 import matplotlib.pyplot as plt
 import sys
 
-gpuIndexString = "0"
+gpuIndexString = "1"
 # gpuIndexString = "0,1,2"
 os.environ["CUDA_VISIBLE_DEVICES"] = gpuIndexString
 
@@ -130,6 +132,21 @@ finalNeurons = [
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron/JK122_trainingData_neuron/'
 ]
 
+finalNeuronsKontrolliert = [
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/combinedVal_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/EKB5_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/ELS470_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/ELS79_BIS-I_NPC2-5_062_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/ELS81_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/ESM49_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/ESM9_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/FJK125_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/FJK130_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/JK122_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/JK242_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/MP149_trainingData_neuron/'
+]
+
 finalNeuronsAdjustedOnly = [
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_adjustedOnly/combinedVal_trainingData_neuron/',
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_adjustedOnly/EKB5_trainingData_neuron/',
@@ -143,6 +160,10 @@ finalNeuronsAdjustedOnly = [
 
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron/JK122_trainingData_neuron/'
 ]
+
+ #########################################################################################################
+ #########################################################################################################
+ #########################################################################################################
 
 finalOligos = [
     # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/ELS81_trainingData_oligo/',
@@ -158,6 +179,26 @@ finalOligos = [
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/MP66_trainingData_oligo/',
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/MP67_trainingData_oligo/',
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/MP70_trainingData_oligo/'
+]
+
+finalOligosKontrolliert = [
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/combinedVal_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/EKB5_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/ELS470_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/ELS79_BIS-I_NPC2-5_062_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/ESM10_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/ESM49_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/ESM9_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/JK122_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/JK153_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/JK155_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/JK156_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/JK242_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/JK95_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/MP149_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/MP66_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/MP67_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/MP70_trainingData_oligo/'
 ]
 
 finalOligosAdjustedOnly = [
@@ -190,9 +231,6 @@ debugOligos = [
     # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/JK155_trainingData_oligo/',
     # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/JK156_trainingData_oligo/',
 ]
-
-# testDataPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/oligo/EKB25_trainingData_oligo/'
-testDataPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/neuron/EKB25_trainingData_neuron/'
 
 
 def gct():
@@ -329,10 +367,18 @@ model = 0
 # SCRABLING
 #################
 
-scrambleResults = scramblePaths(pathCandidateList=finalOligos, validation_count=0, predict_count=1)
+scrambleResults = scramblePaths(pathCandidateList=finalNeuronsKontrolliert, validation_count=0, predict_count=1)
 # outPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/results/roc_results_no81/'
-outPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/models/debug-normalizing/oligo-n4/'
+outPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/models/debug-kontrolliert-weighted/neuron-n4-ep1500/'
 # outPath = '/bph/home/nilfoe/Documents/CNN/results/neurons_final_softmax400/'
+
+#Test Data Old
+#testDataPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/oligo/EKB25_trainingData_oligo/'
+#testDataPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/neuron/EKB25_trainingData_neuron/'
+
+#Test Data Kontrolliert
+#testDataPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_test/'
+testDataPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_test/'
 
 print('Saving results here: ' + outPath)
 os.makedirs(outPath, exist_ok=True)
@@ -456,6 +502,11 @@ for n in range(len(scrambleResults)):
         y_val = np.append(y_val, 1 - y_val, axis=1)
     #################
 
+    y_val_class1_size = len(y_val[y_val == 0])
+    y_val_class2_size = len(y_val[y_val == 1])
+    y_train_class1_size = len(y[y == 0])
+    y_train_class2_size = len(y[y == 1])
+
     print("Loaded validation data has shape: ")
     print(X_val.shape)
     print(y_val.shape)
@@ -523,12 +574,31 @@ for n in range(len(scrambleResults)):
     f.close()
 
     # class weighting
-    from sklearn.utils.class_weight import compute_class_weight
 
+    f = open(outPathCurrent + 'class_weights.csv', 'w+')
+    f.write(';Validation;Training\n')
+    f.write('Class 0 count;' + str(y_val_class1_size) + ';' + str(y_train_class1_size) + '\n')
+    f.write('Class 1 count;' + str(y_val_class2_size) + ';' + str(y_train_class2_size) + '\n')
+    f.write('All count;' + str(y_val_class1_size + y_val_class2_size) + ';' + str(
+        y_train_class1_size + y_train_class2_size) + '\n')
+    f.write('Class Ratio;' + str(y_val_class2_size / y_val_class1_size) + ';' + str(
+        y_train_class2_size / y_train_class1_size) + '\n')
+    f.write('1:x Ratio;' + str(y_val_class1_size / y_val_class2_size) + ';' + str(
+        y_train_class1_size / y_train_class2_size) + '\n\n')
+
+    f.write('Number classes;' + str(n_classes) + '\n')
+    class_weights = np.asarray([1, 1])
     if n_classes == 1:
+        weights_aim = 'balanced'
         y_order = y.reshape(y.shape[0])
-        class_weights = compute_class_weight('balanced', np.unique(y), y_order)
+        class_weights = compute_class_weight(weights_aim, np.unique(y), y_order)
         print("Class weights: ", class_weights)
+
+        f.write('Weight aim;' + weights_aim + '\n')
+        f.write('Weights Class 0;' + str(class_weights[0]) + '\n')
+        f.write('Weights Class 1;' + str(class_weights[1]) + '\n')
+
+    f.close()
 
     logOutPath = outPathCurrent + 'training_log.csv'
     f = open(logOutPath, 'w+')
@@ -574,7 +644,7 @@ for n in range(len(scrambleResults)):
         callbacks=callbacks_list,
         epochs=epochs,
         # batch_size=batch_size,
-        # class_weight=class_weights,
+        class_weight=class_weights,
         steps_per_epoch=len(X) / epochs
     )
 
@@ -597,10 +667,10 @@ for n in range(len(scrambleResults)):
     model.load_weights(weights_best_filename)
 
     # Validate the trained model.
-    print('Evaluating trained data...')
-    scores = model.evaluate(X_val, y_val, verbose=1)
-    print('Test loss:', scores[0])
-    print('Test accuracy:', scores[1])
+    # print('Evaluating trained data...')
+    # scores = model.evaluate(X_val, y_val, verbose=1)
+    # print('Test loss:', scores[0])
+    # print('Test accuracy:', scores[1])
 
     # np.save(np.stack([history.history['acc'],history.history['val_acc'],history.history['loss'],history.history['val_loss']]),outPathCurrent + label + '_history.npy')
 
@@ -676,6 +746,33 @@ for n in range(len(scrambleResults)):
         print('Trying to predict test data')
         y_pred_roc = model.predict(X_test)  # .ravel()
 
+        # PRECISION RECALL CURVE
+        lr_precision, lr_recall, lr_thresholds = precision_recall_curve(y_test, y_pred_roc)
+        lr_auc = auc(lr_recall, lr_precision)
+        lr_noskill = len(y_test[y_test == 1]) / len(y_test)
+
+        plt.plot([0, 1], [lr_noskill, lr_noskill], linestyle='--')
+        plt.plot(lr_recall, lr_precision, label='PR (Area = {:.3f})'.format(lr_auc))
+        plt.xlabel('Recall (TPR)')
+        plt.ylabel('Precision (PPV)')
+        plt.title('Precision-Recall Curve')
+        plt.legend(loc='best')
+        plt.savefig(figPath + 'pr.png', dpi=img_dpi)
+        plt.savefig(figPath + 'pr.pdf', dpi=img_dpi, transparent=True)
+        plt.savefig(figPath + 'pr.svg', dpi=img_dpi, transparent=True)
+        plt.clf()
+
+        # Raw PR data
+        print('Saving raw PR data')
+        f = open(figPath + "pr_data_raw.csv", 'w+')
+        f.write('Baseline: ' + str(lr_noskill) + '\n')
+        f.write('i;Recall;Precision;Thresholds\n')
+        for i in range(len(lr_precision)):
+            f.write(
+                str(i + 1) + ';' + str(lr_recall[i]) + ';' + str(lr_precision[i]) + ';' + str(lr_precision[i]) + ';\n')
+        f.close()
+
+        # ROC CURVE
         print('Calculating roc curve.')
         fpr_roc, tpr_roc, thresholds_roc = roc_curve(y_test, y_pred_roc)
 
@@ -684,7 +781,7 @@ for n in range(len(scrambleResults)):
 
         print('Plotting roc curve.')
         plt.plot([0, 1], [0, 1], 'k--')
-        plt.plot(fpr_roc, tpr_roc, label='ROC (area = {:.3f})'.format(auc_roc))
+        plt.plot(fpr_roc, tpr_roc, label='ROC (Area = {:.3f})'.format(auc_roc))
         plt.xlabel('False positive rate')
         plt.ylabel('True positive rate')
         plt.title('ROC curve')
@@ -702,6 +799,9 @@ for n in range(len(scrambleResults)):
             f.write(
                 str(i + 1) + ';' + str(fpr_roc[i]) + ';' + str(tpr_roc[i]) + ';' + str(thresholds_roc[i]) + ';\n')
         f.close()
+
+        # Try this out: https://classeval.wordpress.com/simulation-analysis/roc-and-precision-recall-with-imbalanced-datasets/
+        # Precision / Recall Curve
 
         # HISTOGRAM
 
@@ -807,4 +907,5 @@ for n in range(len(scrambleResults)):
 #############
 
 print('Training done.')
+print('Timestamp: ', gct())
 print('Your results here: ' + outPath)

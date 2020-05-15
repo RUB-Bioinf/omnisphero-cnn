@@ -23,8 +23,13 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 print("Imports done...")
 
 # MODELS IN USE
+# Default trained for N1 normalisation
 #modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/results/oligo_final_sigmodal/0_custom/'
 modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/results/neuron_final_sigmodal/0_custom/'
+
+# MODELS TO DEBUG THAT FEATURE N4 NORMALISATION
+#modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/debug-normalizing/oligo-n4/0_custom/'
+#modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/debug-normalizing/neuron-n4/0_custom/'
 
 # MODELS TO BE VALIDATED
 #modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/oligo_fieldTest_WObrightness_longer/0_custom/'
@@ -44,8 +49,8 @@ print("Loaded model...")
 ###########
 dir_list = []
 source_dir = ''
-#source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_27/'
-source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_27/'
+#source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_28/'
+source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_28/'
 
 ### To validate, use these whole well experiments:
 #source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/oligo/unannotated/'
@@ -54,6 +59,18 @@ source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_27/'
 # Source dir debugs
 #source_dir = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/debug/2020_mar_set_oligo'
 #source_dir = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/debug/2020_mar_set_neuron'
+
+# Sorce dir with overexposure experiments
+#source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/debug/oligo_norm/'
+#source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/debug/neuron_norm/'
+
+normalize_enum = 1
+# normalize_enum is an enum to determine normalisation as follows:
+# 0 = no normalisation
+# 1 = normalize every cell between 0 and 255
+# 2 = normalize every cell individually with every color channel independent
+# 3 = normalize every cell individually with every color channel using the min / max of all three
+# 4 = normalize every cell but with bounds determined by the brightest cell in the same well
 
 if len(source_dir) > 1:
     additional_dir = misc.get_immediate_subdirectories(source_dir)
@@ -79,7 +96,7 @@ for folder in dir_list[0:]:
         continue
 
     # load data
-    X_to_predict, _ = misc.hdf5_loader(str(folder),gpCurrent=gpCurrent,gpMax=gpMax)
+    X_to_predict, _ = misc.hdf5_loader(str(folder),gpCurrent=gpCurrent,gpMax=gpMax,normalize_enum=normalize_enum)
 
     # process data
     X_to_predict = np.asarray(X_to_predict)
@@ -114,15 +131,21 @@ for folder in dir_list[0:]:
         if filename.endswith('.csv') and not filename.endswith('_prediction.csv') and not filename.endswith(
                 '_prediction_test.csv'):
             
-            # reading
-            print(f'Manipulating: ' + str(filename), end="\r")
-            df = pd.read_csv(filename, delimiter=';')
-            df_length = len(df['label'])
-            df['label'] = binary_label[start_point:start_point + df_length]
+            df_length = 0
+            try:
+                # reading
+                print(f'Manipulating: ' + str(filename), end="\r")
+                df = pd.read_csv(filename, delimiter=';')
+                df_length = len(df['label'])
+                df['label'] = binary_label[start_point:start_point + df_length]
+    
+                # save with new name
+                split_name = filename.split('.')
+                df.to_csv(split_name[0] + '_prediction.csv', sep=';', index=False)
+            except Exception as e:
+                pass
 
-            # save with new name
-            split_name = filename.split('.')
-            df.to_csv(split_name[0] + '_prediction.csv', sep=';', index=False)
+                f.close()
 
             # update start point
             start_point += df_length

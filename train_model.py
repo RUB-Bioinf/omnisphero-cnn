@@ -6,43 +6,27 @@ JOSHUA BUTKE, SEPTEMBER 2019
 
 # IMPORTS
 #########
-import numpy as np
-import h5py
-import os
-import time
 import math
-
+import sys
 from datetime import datetime
 
-from tensorflow import keras
-
-from keras.models import Model
-from keras.models import Sequential
-from keras.models import model_from_json
-from keras.utils import plot_model
-
-from keras.layers import Dense, Input, Conv2D, MaxPooling2D, Flatten, Dropout, BatchNormalization, Activation
-from keras.optimizers import Adam, RMSprop, SGD
-from keras import optimizers, regularizers
-from keras.callbacks import Callback
-from keras.callbacks import *
-from keras.utils import *
-from keras.layers import Dense
-from keras.utils.vis_utils import plot_model
-from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
-
-from sklearn.metrics import roc_curve, roc_auc_score, auc
-from sklearn.metrics import *
-
-from scramblePaths import *
-from misc_omnisphero import *
-from sklearn.utils.class_weight import compute_class_weight
-
-from keras.preprocessing.image import *
 import matplotlib.pyplot as plt
-import sys
+from keras.callbacks import *
+from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
+from keras.layers import Dense
+from keras.layers import Input, Conv2D, MaxPooling2D, Flatten, Dropout, BatchNormalization
+from keras.models import Model
+from keras.optimizers import SGD
+from keras.preprocessing.image import *
+from keras.utils import *
+from sklearn.utils.class_weight import compute_class_weight
+import keras.backend as K
 
-gpuIndexString = "1"
+from misc_omnisphero import *
+from scramblePaths import *
+from test_utils import test_cnn
+
+gpuIndexString = "2"
 # gpuIndexString = "0,1,2"
 os.environ["CUDA_VISIBLE_DEVICES"] = gpuIndexString
 
@@ -161,9 +145,9 @@ finalNeuronsAdjustedOnly = [
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron/JK122_trainingData_neuron/'
 ]
 
- #########################################################################################################
- #########################################################################################################
- #########################################################################################################
+#########################################################################################################
+#########################################################################################################
+#########################################################################################################
 
 finalOligos = [
     # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/ELS81_trainingData_oligo/',
@@ -314,10 +298,25 @@ def omnisphero_CNN(n_classes, input_height, input_width, input_depth, data_forma
     return model
 
 
+def custom_loss_debug(y_true, y_pred):
+    pass
+
+
+def custom_loss_mse(y_true, y_pred):
+    # shape of y_true -> (batch_size,units)
+    # shape of y_pred -> (batch_size,units)
+
+    loss = K.square(y_pred - y_true)
+    loss = K.mean(loss, axis=1)
+
+    return loss
+
+
 # ROC stuff
 # Source: https://stackoverflow.com/questions/41032551/how-to-compute-receiving-operating-characteristic-roc-and-auc-in-keras
-class plot_callback(Callback):
+class CustomCallback(Callback):
     def __init__(self, training_data, validation_data, file_handle, reduce_rate=0.5):
+        super().__init__()
         self.i = 0
         self.x = []
         self.losses = []
@@ -367,18 +366,21 @@ model = 0
 # SCRABLING
 #################
 
-scrambleResults = scramblePaths(pathCandidateList=finalNeuronsKontrolliert, validation_count=0, predict_count=1)
+scrambleResults = scramblePaths(pathCandidateList=debugNeurons, validation_count=0, predict_count=1)
 # outPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/results/roc_results_no81/'
-outPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/models/debug-kontrolliert-weighted/neuron-n4-ep1500/'
+# outPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/models/debug-kontrolliert-weighted/neuron-n4-ep1500/'
 # outPath = '/bph/home/nilfoe/Documents/CNN/results/neurons_final_softmax400/'
 
-#Test Data Old
-#testDataPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/oligo/EKB25_trainingData_oligo/'
-#testDataPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/neuron/EKB25_trainingData_neuron/'
+# outPath = '/bph/puredata3/work/sas15_mirror_nils/cnn/models/debug-kontrolliert-unweighted/neuron-n4-ep1500/'
+outPath = '/bph/puredata3/work/sas15_mirror_nils/cnn/models/debug/custom_loss2/'
 
-#Test Data Kontrolliert
-#testDataPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_test/'
-testDataPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_test/'
+# Test Data Old
+# test_data_path = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/oligo/EKB25_trainingData_oligo/'
+# test_data_path = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/neuron/EKB25_trainingData_neuron/'
+
+# Test Data Kontrolliert
+test_data_path = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_test/'
+# test_data_path = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_test/'
 
 print('Saving results here: ' + outPath)
 os.makedirs(outPath, exist_ok=True)
@@ -400,7 +402,7 @@ lossEnum = 'binary_crossentropy'
 data_format = 'channels_last'
 optimizer_name = 'adadelta'
 learn_rate = 0.0001
-epochs = 1500
+epochs = 5
 # Erfahrung zeigt: 300 Epochen für Oligos, 400 für Neurons
 
 normalize_enum = 4
@@ -422,7 +424,7 @@ for n in range(len(scrambleResults)):
     del model
 
     # AUGMENTATION
-    datagen = ImageDataGenerator(
+    data_gen = ImageDataGenerator(
         rotation_range=360,
         validation_split=0.0,
         # brightness_range=[1.0,1.0],
@@ -490,7 +492,7 @@ for n in range(len(scrambleResults)):
     # np.savez('/bph/puredata4/bioinfdata/work/omnisphero/CNN/temp/temp2', X, y)
 
     # X = misc.normalize_RGB_pixels(X)  # preprocess data
-    datagen.fit(X)
+    data_gen.fit(X)
 
     # VALIDATION DATA
     #################
@@ -533,7 +535,7 @@ for n in range(len(scrambleResults)):
         print("Model has been set up to run on multiple GPUs.")
         print("Steps per epoch: " + str(steps_per_epoch))
 
-    model.compile(loss=lossEnum, optimizer=SGD(lr=learn_rate), metrics=['accuracy'])
+    model.compile(loss=custom_loss_mse, optimizer=SGD(lr=learn_rate), metrics=['accuracy'])
     # model.compile(loss='mse', optimizer='adam', metrics=['mean_squared_error'])
     model.summary()
     print("Model output shape: ", model.output_shape)
@@ -622,7 +624,7 @@ for n in range(len(scrambleResults)):
     callbacks_list = [model_checkpoint,
                       lrCallBack,
                       csv_logger,
-                      plot_callback(training_data=(X, y), validation_data=(X_val, y_val), file_handle=f)]
+                      CustomCallback(training_data=(X, y), validation_data=(X_val, y_val), file_handle=f)]
 
     # TRAINING
     ##########
@@ -634,7 +636,7 @@ for n in range(len(scrambleResults)):
     #                        class_weight=class_weights
     #                        )
 
-    history_all = model.fit_generator(datagen.flow(
+    history_all = model.fit_generator(data_gen.flow(
         X, y,
         batch_size=batch_size,
         # save_to_dir=augmentPath,
@@ -644,7 +646,7 @@ for n in range(len(scrambleResults)):
         callbacks=callbacks_list,
         epochs=epochs,
         # batch_size=batch_size,
-        class_weight=class_weights,
+        # class_weight=class_weights,
         steps_per_epoch=len(X) / epochs
     )
 
@@ -724,184 +726,12 @@ for n in range(len(scrambleResults)):
 
     # TEST DATA
     #################
-    print('Loading Test data: ' + testDataPath)
-    y_test = np.empty((0, 1))
-    X_test, y_test = misc.hdf5_loader(testDataPath, gpCurrent=1, gpMax=1, normalize_enum=normalize_enum)
-    print('Done. Preprocessing test data.')
-    y_test = np.asarray(y_test)
-    y_test = y_test.astype(np.int)
 
-    X_test = np.asarray(X_test)
-    print(X_test.shape)
-    X_test = np.moveaxis(X_test, 1, 3)
-    # X_test = misc.normalize_RGB_pixels(X_test)
-
-    print("Loaded test data has shape: ")
-    print(X_test.shape)
-    print(y_test.shape)
-    #################
-
-    # ROC Curve
     try:
-        print('Trying to predict test data')
-        y_pred_roc = model.predict(X_test)  # .ravel()
-
-        # PRECISION RECALL CURVE
-        lr_precision, lr_recall, lr_thresholds = precision_recall_curve(y_test, y_pred_roc)
-        lr_auc = auc(lr_recall, lr_precision)
-        lr_noskill = len(y_test[y_test == 1]) / len(y_test)
-
-        plt.plot([0, 1], [lr_noskill, lr_noskill], linestyle='--')
-        plt.plot(lr_recall, lr_precision, label='PR (Area = {:.3f})'.format(lr_auc))
-        plt.xlabel('Recall (TPR)')
-        plt.ylabel('Precision (PPV)')
-        plt.title('Precision-Recall Curve')
-        plt.legend(loc='best')
-        plt.savefig(figPath + 'pr.png', dpi=img_dpi)
-        plt.savefig(figPath + 'pr.pdf', dpi=img_dpi, transparent=True)
-        plt.savefig(figPath + 'pr.svg', dpi=img_dpi, transparent=True)
-        plt.clf()
-
-        # Raw PR data
-        print('Saving raw PR data')
-        f = open(figPath + "pr_data_raw.csv", 'w+')
-        f.write('Baseline: ' + str(lr_noskill) + '\n')
-        f.write('i;Recall;Precision;Thresholds\n')
-        for i in range(len(lr_precision)):
-            f.write(
-                str(i + 1) + ';' + str(lr_recall[i]) + ';' + str(lr_precision[i]) + ';' + str(lr_precision[i]) + ';\n')
-        f.close()
-
-        # ROC CURVE
-        print('Calculating roc curve.')
-        fpr_roc, tpr_roc, thresholds_roc = roc_curve(y_test, y_pred_roc)
-
-        print('Calculating AUC.')
-        auc_roc = auc(fpr_roc, tpr_roc)
-
-        print('Plotting roc curve.')
-        plt.plot([0, 1], [0, 1], 'k--')
-        plt.plot(fpr_roc, tpr_roc, label='ROC (Area = {:.3f})'.format(auc_roc))
-        plt.xlabel('False positive rate')
-        plt.ylabel('True positive rate')
-        plt.title('ROC curve')
-        plt.legend(loc='best')
-        plt.savefig(figPath + 'roc.png', dpi=img_dpi)
-        plt.savefig(figPath + 'roc.pdf', dpi=img_dpi, transparent=True)
-        plt.savefig(figPath + 'roc.svg', dpi=img_dpi, transparent=True)
-        plt.clf()
-
-        # Raw ROC data
-        print('Saving raw ROC data')
-        f = open(figPath + "roc_data_raw.csv", 'w+')
-        f.write('i;FPR;TPR;Thresholds\n')
-        for i in range(len(thresholds_roc)):
-            f.write(
-                str(i + 1) + ';' + str(fpr_roc[i]) + ';' + str(tpr_roc[i]) + ';' + str(thresholds_roc[i]) + ';\n')
-        f.close()
-
-        # Try this out: https://classeval.wordpress.com/simulation-analysis/roc-and-precision-recall-with-imbalanced-datasets/
-        # Precision / Recall Curve
-
-        # HISTOGRAM
-
-        hist_pos = y_pred_roc[np.where(y_pred_roc > 0.5)]
-        plt.hist(hist_pos, bins='auto')
-        plt.title("Histogram: Positive")
-        plt.savefig(figPath + 'histogram_1.png', dpi=img_dpi)
-        plt.clf()
-
-        hist_neg = y_pred_roc[np.where(y_pred_roc <= 0.5)]
-        plt.hist(hist_neg, bins='auto')
-        plt.title("Histogram: Negative")
-        plt.savefig(figPath + 'histogram_0.png', dpi=img_dpi)
-        plt.clf()
-
-        plt.hist(y_pred_roc, bins='auto')
-        plt.title("Histogram: All")
-        plt.savefig(figPath + 'histogram_all.png', dpi=img_dpi)
-        plt.clf()
-
-        plt.hist(label, bins='auto')
-        plt.title("Histogram: All [Capped]")
-        axes = plt.gca()
-        plt.ylim(0, 2000)
-        plt.xlim(0, 1)
-        plt.savefig(figPath + 'histogram_all2.png', dpi=img_dpi)
-        plt.clf()
-
-        # TPR / FNR
-        print("Calculating TPR / TNR, etc. for: " + label + ".")
-
-        tp = 0
-        tn = 0
-        fp = 0
-        fn = 0
-
-        bp = 0
-        bn = 0
-        pp = 0
-        pn = 0
-
-        y_baseline_values = sigmoid_binary(y_test)
-        y_prediction_values = sigmoid_binary(y_pred_roc)
-        for i in range(len(y_baseline_values)):
-            current_baseline = y_baseline_values[i][0]
-            current_prediction = y_prediction_values[i][0]
-
-            if current_baseline == 1:
-                bp = bp + 1
-                if current_prediction == 1:
-                    tp = tp + 1
-                    pp = pp + 1
-                else:
-                    fn = fn + 1
-                    pn = pn + 1
-            else:
-                bn = bn + 1
-                if current_prediction == 1:
-                    fp = fp + 1
-                    pp = pp + 1
-                else:
-                    tn = tn + 1
-                    pn = pn + 1
-
-        f = open(outPathCurrent + "test_data_statistics.csv", 'w+')
-        f.write('Count;Baseline;Predicted\n')
-        f.write('All;' + str(len(y_baseline_values)) + ';' + str(len(y_prediction_values)) + '\n')
-        f.write('Positive;' + str(bp) + ';' + str(pp) + '\n')
-        f.write('Negative;' + str(bn) + ';' + str(pn) + '\n\n')
-
-        f.write('TPR;' + str(tp / bp) + '\n')
-        f.write('TNR;' + str(tn / bn) + '\n')
-        f.write('FPR;' + str(fp / bn) + '\n')
-        f.write('FNR;' + str(fn / bp) + '\n')
-
-        f.write('ACC;' + str((tp + tn) / (bp + bn)) + '\n')
-        f.write('BACC;' + str(((tp / bp) + (tn / bn)) / 2) + '\n')
-        f.write('F1;' + str((2 * tp) / (2 * tp + fp + fn)) + '\n')
-
-        f.close()
-
+        test_cnn(outPathCurrent, test_data_path, normalize_enum, img_dpi, gpuIndexString, True, label='train-test')
     except Exception as e:
-        # Printing the exception message to file.
-        print("Failed to calculate roc curve for: " + label + ".")
-        f = open(figPath + "rocError.txt", 'w+')
-        f.write(str(e))
-
-        try:
-            # Printing the stack trace to the file
-            exc_info = sys.exc_info()
-            f.write('\n')
-            f.write(str(exc_info))
-        except Exception as e2:
-            print('Failed to write the whole stack trace into the error file. Reason:')
-            print(str(e2))
-            pass
-
-        f.close()
-
-    del X_test
+        pass
+        # TODO print stacktrace
 
 # END OF FILE
 #############

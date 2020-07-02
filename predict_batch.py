@@ -8,6 +8,7 @@ JOSHUA BUTKE, AUGUST 2019
 import os
 import sys
 import time
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -20,12 +21,15 @@ import misc_omnisphero as misc
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
+def gct():
+    return datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+
 print("Imports done...")
 
 # MODELS IN USE
 # Default trained for N1 normalisation
-#modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/results/oligo_final_sigmodal/0_custom/'
-modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/results/neuron_final_sigmodal/0_custom/'
+modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/results/oligo_final_sigmodal/0_custom/'
+#modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/results/neuron_final_sigmodal/0_custom/'
 
 # MODELS TO DEBUG THAT FEATURE N4 NORMALISATION
 #modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/debug-normalizing/oligo-n4/0_custom/'
@@ -49,8 +53,8 @@ print("Loaded model...")
 ###########
 dir_list = []
 source_dir = ''
-#source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_28/'
-source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_28/'
+source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_40/'
+#source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_40/'
 
 ### To validate, use these whole well experiments:
 #source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/oligo/unannotated/'
@@ -88,6 +92,7 @@ time.sleep(6)
 for folder in dir_list[0:]:
     print('Considering: ' + folder)
     print('Prediction progress: ' + str(gpCurrent) + '/' + str(gpMax))
+    print('Current date: '+gct())
 
     gpCurrent = gpCurrent + 1
     if "unannotated" in folder:

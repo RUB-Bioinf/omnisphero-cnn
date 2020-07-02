@@ -1,43 +1,14 @@
 # IMPORTS
 #########
-import numpy as np
-import h5py
-import os
-import time
-import math
 
-from datetime import datetime
-
-from tensorflow import keras
-
-from keras.models import Model
-from keras.models import Sequential
-from keras.models import model_from_json
-from keras.utils import plot_model
-
-from keras.layers import Dense, Input, Conv2D, MaxPooling2D, Flatten, Dropout, BatchNormalization, Activation
-from keras.optimizers import Adam, RMSprop, SGD
-from keras import optimizers, regularizers
-from keras.callbacks import Callback
-from keras.callbacks import *
-from keras.utils import *
-from keras.layers import Dense
-from keras.utils.vis_utils import plot_model
-from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
-import pandas as pd
-from keras.models import load_model
-import misc_omnisphero as misc
-
-from sklearn.metrics import roc_curve, roc_auc_score, auc
-from sklearn.metrics import *
-
-from scramblePaths import *
-from misc_omnisphero import *
-
-from keras.preprocessing.image import *
-import matplotlib.pyplot as plt
 import sys
 from datetime import datetime
+
+from keras.models import load_model
+from sklearn.metrics import *
+
+import misc_omnisphero as misc
+from misc_omnisphero import *
 
 
 def test_cnn(model_path, test_data_path, normalize_enum, img_dpi, cuda_devices, include_date=True, label='cnn-test'):
@@ -83,9 +54,9 @@ def test_cnn(model_path, test_data_path, normalize_enum, img_dpi, cuda_devices, 
         # PRECISION RECALL CURVE
         lr_precision, lr_recall, lr_thresholds = precision_recall_curve(y_test, y_pred_roc)
         lr_auc = auc(lr_recall, lr_precision)
-        lr_noskill = len(y_test[y_test == 1]) / len(y_test)
+        lr_no_skill = len(y_test[y_test == 1]) / len(y_test)
 
-        plt.plot([0, 1], [lr_noskill, lr_noskill], linestyle='--')
+        plt.plot([0, 1], [lr_no_skill, lr_no_skill], linestyle='--')
         plt.plot(lr_recall, lr_precision, label='PR (Area = {:.3f})'.format(lr_auc))
         plt.xlabel('Recall (TPR)')
         plt.ylabel('Precision (PPV)')
@@ -99,7 +70,7 @@ def test_cnn(model_path, test_data_path, normalize_enum, img_dpi, cuda_devices, 
         # Raw PR data
         print('Saving raw PR data')
         f = open(fig_path + "pr_data_raw.csv", 'w+')
-        f.write('Baseline: ' + str(lr_noskill) + '\n')
+        f.write('Baseline: ' + str(lr_no_skill) + '\n')
         f.write('i;Recall;Precision;Thresholds\n')
         for i in range(len(lr_precision)):
             f.write(

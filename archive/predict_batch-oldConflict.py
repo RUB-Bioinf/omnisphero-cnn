@@ -110,14 +110,14 @@ for folder in dir_list[0:]:
         continue
 
     # load data
-    X_to_predict, _ = misc.hdf5_loader(str(folder),gpCurrent=gpCurrent,gpMax=gpMax)
+    X_to_predict, _ = misc.hdf5_loader(str(folder), gp_current=gpCurrent, gp_max=gpMax)
 
     # process data
     X_to_predict = np.asarray(X_to_predict)
     print('Loaded data at: ', str(folder))
     print(X_to_predict.shape)
     X_to_predict = np.moveaxis(X_to_predict, 1, 3)
-    X_to_predict = misc.normalize_RGB_pixels(X_to_predict)
+    X_to_predict = misc.normalize_rgb_pixels(X_to_predict)
     print(X_to_predict.shape)
 
     # generate prediction

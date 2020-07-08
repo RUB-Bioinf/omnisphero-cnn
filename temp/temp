@@ -1,0 +1,305 @@
+# IMPORTS
+#########
+import math
+import sys
+
+import matplotlib.pyplot as plt
+from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
+from sklearn.utils.class_weight import compute_class_weight
+
+# Custom Module
+###############
+import misc_omnisphero as misc
+from misc_omnisphero import *
+from test_model import test_cnn
+from train_model import omnisphero_CNN
+
+
+def train_model(training_path_list, validation_path_list, normalize_enum, n_classes,
+                input_height,
+                input_width, input_depth, data_format, out_path, gpu_index_string, img_dpi,
+                batch_size, learn_rate, epochs, gp_current=1, gp_max=1,
+                data_gen=None, label=None):
+    # Creating specific out dirs
+    augment_path = out_path + 'augments' + os.sep
+    fig_path = out_path + 'fig' + os.sep
+    fig_path_model = fig_path + 'model' + os.sep
+    os.makedirs(augment_path, exist_ok=True)
+    os.makedirs(fig_path, exist_ok=True)
+    os.makedirs(fig_path_model, exist_ok=True)
+
+    # Logging the directories used for training
+    f = open(out_path + 'training_data_used.txt', 'w+')
+    f.write('Current time: ' + gct())
+    f.write('Training paths:\n')
+    for i in range(len(training_path_list)):
+        f.write(training_path_list[i] + '\n')
+    f.write('\nValidation paths:\n')
+    for i in range(len(validation_path_list)):
+        f.write(validation_path_list[i] + '\n')
+    f.close()
+
+    # TRAINING DATA
+    ###############
+    print("Loading. Training data size: " + str(len(training_path_list)))
+    X, y = misc.multiple_hdf5_loader(training_path_list, gp_current=gp_current, gp_max=gp_max,
+                                     normalize_enum=normalize_enum)  # load datasets
+
+    print(y.shape)
+    if n_classes == 2:
+        y = np.append(y, 1 - y, axis=1)
+    print("Finished loading training data. Loaded data has shape: ")
+    print("X-shape: " + str(X.shape))
+    print("y-shape: " + str(y.shape))
+
+    print("Correcting axes...")
+    X = np.moveaxis(X, 1, 3)
+    y = y.astype(np.int)
+    print("X-shape (corrected): " + str(X.shape))
+
+    print("Fitting X to the data-gen.")
+    data_gen.fit(X)
+    print("Done.")
+
+    # VALIDATION DATA
+    #################
+    print("Validation data size: " + str(len(validation_path_list)))
+    X_val, y_val = misc.multiple_hdf5_loader(validation_path_list, gp_current=gp_current, gp_max=gp_max,
+                                             normalize_enum=normalize_enum)
+    print("Validation data shape: " + str(y_val.shape))
+    if n_classes == 2:
+        y_val = np.append(y_val, 1 - y_val, axis=1)
+    #################
+
+    y_val_class1_size = len(y_val[y_val == 0])
+    y_val_class2_size = len(y_val[y_val == 1])
+    y_train_class1_size = len(y[y == 0])
+    y_train_class2_size = len(y[y == 1])
+
+    print("Loaded validation data has shape: ")
+    print("X_val shape: " + str(X_val.shape))
+    print("y_val shape: " + str(y_val.shape))
+
+    print("Correcting axes...")
+    X_val = np.moveaxis(X_val, 1, 3)
+    # X_val = misc.normalize_RGB_pixels(X_val)
+    y_val = y_val.astype(np.int)
+    print("X_val corrected shape: " + str(X_val.shape))
+    print("y_val corrected shape: " + str(y_val.shape))
+
+    # CONSTRUCTION
+    ##############
+    steps_per_epoch = math.nan
+    print("Building model...")
+    gpu_indexes = list(gpu_index_string.replace(",", ""))
+    gpu_index_count = len(gpu_indexes)
+    print("Visible GPUs: '" + gpu_index_string + "'. Count: " + str(gpu_index_count))
+
+    model = omnisphero_CNN(n_classes, input_height, input_width, input_depth, data_format)
+    if gpu_index_count > 1:
+        model = multi_gpu_model(model, gpus=gpu_index_count)
+        steps_per_epoch = len(X) / epochs
+        print("Model has been set up to run on multiple GPUs.")
+        print("Steps per epoch: " + str(steps_per_epoch))
+
+    print("Compiling model...")
+    # model.compile(loss=custom_loss_mse, optimizer=SGD(lr=learn_rate), metrics=['accuracy'])
+    model.compile(loss='mse', optimizer='adam', metrics=['mean_squared_error'])
+    # TODO use dynamic params
+    model.summary()
+    print("Model output shape: ", model.output_shape)
+
+    orig_stdout = sys.stdout
+    f = open(out_path + 'model_summary.txt', 'w')
+    sys.stdout = f
+    print(model.summary())
+    sys.stdout = orig_stdout
+    f.close()
+
+    # plot_model(model, to_file=outPathCurrent + label + '_model.png', show_shapes=True, show_layer_names=True)
+    f = open(out_path + 'model.txt', 'w+')
+
+    f.write('Training time: ' + gct())
+    if label is not None:
+        f.write('Label: ' + label + '\n')
+    f.write('Optimizer: SGD\n')
+    f.write('Loss: ' + lossEnum + '\n')
+    f.write('GPUs: ' + gpu_index_string + '\n')
+    f.write('Steps per epoch: ' + str(steps_per_epoch) + '\n')
+    f.write('Model shape: ' + str(model.output_shape) + '\n')
+    f.write('Batch size: ' + str(batch_size) + '\n')
+    f.write('Classes: ' + str(n_classes) + '\n')
+    f.write('Input height: ' + str(input_height) + '\n')
+    f.write('Input depth: ' + str(input_depth) + '\n')
+    f.write('Data Format: ' + str(data_format) + '\n')
+    f.write('Learn Rate: ' + str(learn_rate) + '\n')
+    f.write('Epochs: ' + str(epochs) + '\n')
+    f.write('Normalization mode: ' + str(normalize_enum) + '\n')
+    f.close()
+
+    f = open(out_path + 'model.json', 'w+')
+    f.write(model.to_json())
+    f.close()
+
+    # TODO make weighting optional
+    # class weighting
+    f = open(out_path + 'class_weights.csv', 'w+')
+    f.write(';Validation;Training\n')
+    f.write('Class 0 count;' + str(y_val_class1_size) + ';' + str(y_train_class1_size) + '\n')
+    f.write('Class 1 count;' + str(y_val_class2_size) + ';' + str(y_train_class2_size) + '\n')
+    f.write('All count;' + str(y_val_class1_size + y_val_class2_size) + ';' + str(
+        y_train_class1_size + y_train_class2_size) + '\n')
+    f.write('Class Ratio;' + str(y_val_class2_size / y_val_class1_size) + ';' + str(
+        y_train_class2_size / y_train_class1_size) + '\n')
+    f.write('1:x Ratio;' + str(y_val_class1_size / y_val_class2_size) + ';' + str(
+        y_train_class1_size / y_train_class2_size) + '\n\n')
+
+    f.write('Number classes;' + str(n_classes) + '\n')
+    class_weights = np.asarray([1, 1])
+    if n_classes == 1:
+        weights_aim = 'balanced'
+        y_order = y.reshape(y.shape[0])
+        class_weights = compute_class_weight(weights_aim, np.unique(y), y_order)
+        print("Class weights: ", class_weights)
+
+        f.write('Weight aim;' + weights_aim + '\n')
+        f.write('Weights Class 0;' + str(class_weights[0]) + '\n')
+        f.write('Weights Class 1;' + str(class_weights[1]) + '\n')
+    f.close()
+
+    log_out_path = out_path + 'training_log.csv'
+    f = open(log_out_path, 'w+')
+    f.write(gct() + '\nEpoch;Accuracy;Loss;??;Validation Accuracy; Validation Loss\n')
+    f.close()
+
+    # CALLBACKS
+    ###########
+    weights_best_filename = out_path + 'weights_best.h5'
+    f = open(out_path + 'training_progress.txt', 'w+')
+    model_checkpoint = ModelCheckpoint(weights_best_filename, monitor='val_loss', verbose=1,
+                                       save_best_only=True, mode='min')
+    lrCallBack = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=60, verbose=0, mode='auto',
+                                   min_delta=0.0001, cooldown=0, min_lr=0)
+    csv_logger = CSVLogger(log_out_path, separator=';', append=True)
+
+    callbacks_list = [model_checkpoint,
+                      lrCallBack,
+                      csv_logger,
+                      CustomCallback(training_data=(X, y), validation_data=(X_val, y_val), file_handle=f)]
+
+    history_all = None
+    # TRAINING
+    ##########
+    if label is not None:
+        print('Reminder. Training for label: ' + label)
+    print('Saving model here: ' + out_path)
+    print('Training started: ' + gct())
+
+    # Checking if a data generator exists. If so, datagen mode will be used. If not, classic training.
+    if data_gen is None:
+        print('Fitting model without a data gen!')
+        history_all = model.fit(X, y,
+                                validation_data=(X_val, y_val),
+                                callbacks=callbacks_list,
+                                epochs=epochs,
+                                batch_size=batch_size,
+                                class_weight=class_weights
+                                )
+    else:
+        print('Fitting model and using a data gen!')
+        history_all = model.fit_generator(data_gen.flow(
+            X, y,
+            batch_size=batch_size,
+            # save_to_dir=augment_path,
+            # save_prefix='aug'
+        ),
+            validation_data=(X_val, y_val),
+            callbacks=callbacks_list,
+            epochs=epochs,
+            # batch_size=batch_size,
+            # class_weight=class_weights,
+            steps_per_epoch=len(X) / epochs
+        )
+
+    history = [np.zeros((epochs, 4), dtype=np.float32)]
+    history[0][:, 0] = history_all.history['loss']
+    history[0][:, 1] = history_all.history['acc']
+    history[0][:, 2] = history_all.history['val_loss']
+    history[0][:, 3] = history_all.history['val_acc']
+
+    # SAVING
+    ########
+    print('Timestamp: ', gct())
+
+    model.save(out_path + 'model.h5')
+    model.save_weights(out_path + 'weights.h5')
+    print('Saved model: ' + out_path + 'model.h5')
+
+    print('Loading best weights again.')
+    model.load_weights(weights_best_filename)
+
+    # np.save(np.stack([history.history['acc'],history.history['val_acc'],history.history['loss'],history.history['val_loss']]),outPathCurrent + label + '_history.npy')
+
+    # Plot training & validation accuracy values
+    plt.plot(history_all.history['acc'])
+    plt.plot(history_all.history['val_acc'])
+    plt.title('Model accuracy')
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epoch')
+    plt.legend(['Train', 'Validation'], loc='best')
+
+    plt.savefig(fig_path + 'accuracy.png', dpi=img_dpi)
+    plt.savefig(fig_path + 'accuracy.svg', dpi=img_dpi, transparent=True)
+    plt.savefig(fig_path + 'accuracy.pdf', dpi=img_dpi, transparent=True)
+    plt.clf()
+    print('Saved accuracy.')
+
+    # Plot training & validation loss values
+    plt.plot(history_all.history['loss'])
+    plt.plot(history_all.history['val_loss'])
+    plt.title('Model loss')
+    plt.ylabel('Loss')
+    plt.xlabel('Epoch')
+    plt.legend(['Train', 'Validation'], loc='best')
+
+    plt.savefig(fig_path + 'loss.png', dpi=img_dpi)
+    plt.savefig(fig_path + 'loss.pdf', dpi=img_dpi, transparent=True)
+    plt.savefig(fig_path + 'loss.svg', dpi=img_dpi, transparent=True)
+    plt.clf()
+    print('Saved loss.')
+
+    # Saving raw plot data
+    print('Saving raw plot data.')
+    f = open(fig_path + "plot_data_raw.csv", 'w+')
+    f.write('Epoch;Accuracy;Validation Accuracy;Loss;Validation Loss\n')
+    for i in range(epochs):
+        f.write(
+            str(i + 1) + ';' + str(history_all.history['acc'][i]) + ';' + str(history_all.history['val_acc'][i]) + ';' +
+            str(history_all.history['loss'][i]) + ';' + str(history_all.history['val_loss'][i]) + ';' + str(
+                history_all.history['acc'][i]) + ';\n')
+    f.close()
+
+    # SAVING HISTORY
+    np.save(out_path + "history.npy", history)
+    print('Saved history.')
+
+    # SAVING ON MEMORY
+    del X_val
+    del X
+    del y
+
+    # TEST DATA
+    #################
+    try:
+        test_cnn(out_path, test_data_path, normalize_enum, img_dpi, gpu_index_string, True, label='train-test')
+    except Exception as e:
+        print(gct() + "Failed to execute CNN TEST!")
+        pass
+        # TODO print stacktrace
+
+    # END OF Training
+    #############
+
+    print('Training done.')
+    print('Timestamp: ', gct())
+    print('Your results here: ' + out_path)

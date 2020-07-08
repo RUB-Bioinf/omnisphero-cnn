@@ -12,3 +12,12 @@ It can predict in batches on unannotated data to construct new '.csv' files.
 - Give the location of a saved model which should be used to predict on new data
 - Give the directory which contains unannotated data that should be labeled
 
+### Required libraries
+Please aquire the following libraries on your own, as they are not included within this repository:
+
+ - numpy
+ - pandas
+ - keras
+ - matplotlib
+ - h5py
+ - sklearn

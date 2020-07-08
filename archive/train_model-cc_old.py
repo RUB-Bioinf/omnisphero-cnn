@@ -291,7 +291,7 @@ model = 0
 # SCRABLING
 #################
 
-scrambleResults = scramblePaths(pathCandidateList=debugOligos, validation_count=0, predict_count=1)
+scrambleResults = scramble_paths(path_candidate_list=debugOligos, validation_count=0, test_count=1)
 # outPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/results/roc_results_no81/'
 outPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/models/debug/stepsPerEpoch/'
 #outPath = '/bph/home/nilfoe/Documents/CNN/results/neurons_final_softmax400/'
@@ -409,7 +409,7 @@ for n in range(len(scrambleResults)):
     # np.savez('/bph/puredata4/bioinfdata/work/omnisphero/CNN/temp/temp2', X, y)
 
     print("Fitting data to generator.");
-    X = misc.normalize_RGB_pixels(X)  # preprocess data
+    X = misc.normalize_rgb_pixels(X)  # preprocess data
     datagen.fit(X)
     print("Done.");
 
@@ -427,7 +427,7 @@ for n in range(len(scrambleResults)):
     print(y_val.shape)
     print("Correcting axes...")
     X_val = np.moveaxis(X_val, 1, 3)
-    X_val = misc.normalize_RGB_pixels(X_val)
+    X_val = misc.normalize_rgb_pixels(X_val)
     y_val = y_val.astype(np.int)
     print(X_val.shape)
     print(y_val.shape)
@@ -609,14 +609,14 @@ for n in range(len(scrambleResults)):
     #################
     print("Loading Test data")
     y_test = np.empty((0, 1))
-    X_test, y_test = misc.hdf5_loader(test_path,gpCurrent=1,gpMax=1)
+    X_test, y_test = misc.hdf5_loader(test_path, gp_current=1, gp_max=1)
     y_test = np.asarray(y_test)
     y_test = y_test.astype(np.int)
 
     X_test = np.asarray(X_test)
     print(X_test.shape)
     X_test = np.moveaxis(X_test, 1, 3)
-    X_test = misc.normalize_RGB_pixels(X_test)
+    X_test = misc.normalize_rgb_pixels(X_test)
 
     print("Loaded test data has shape: ")
     print(X_test.shape)

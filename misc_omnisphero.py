@@ -1,6 +1,8 @@
+# Nils Foerster
 # Joshua Butke
-# July 2019
+# 2019 - 2020
 ##############
+
 
 """This script contains miscellaneous helper functions
 to be used. Some might work, others might not...
@@ -13,17 +15,18 @@ PROJECT: Omnisphero CNN
 ########
 
 import os
-import numpy as np
-import h5py
 import re
-import matplotlib.pyplot as plt
+from datetime import datetime
+
+import h5py
+import numpy as np
 
 
-# FUNCTION DEFINITONS
+# FUNCTION DEFINITIONS
 #####################
 
-def hdf5_loader(path, pattern='_[A-Z][0-9]{2}_', suffix_data='.h5', suffix_label='_label.h5',
-                gpCurrent=0, gpMax=0, normalize_enum=1):
+def hdf5_loader(path: str, pattern: str = '_[A-Z][0-9]{2}_', suffix_data: str = '.h5', suffix_label: str = '_label.h5',
+                gp_current: int = 0, gp_max: int = 0, normalize_enum: int = 1):
     '''Helper function which loads all datasets from a hdf5 file in
     a specified file at a specified path.
 
@@ -84,7 +87,7 @@ def hdf5_loader(path, pattern='_[A-Z][0-9]{2}_', suffix_data='.h5', suffix_label
                     # print("Loading dataset associated with key ", str(key))
                     print(f"Reading label file: " + str(i) + " / " + str(
                         file_count) + ": " + filename + " - Current dataset key: " + str(key) + " [" + str(
-                        gpCurrent) + "/" + str(gpMax) + "]   ", end="\r")
+                        gp_current) + "/" + str(gp_max) + "]   ", end="\r")
                     y.append(np.array(f[str(key)]))
                 f.close()
                 # print("\nClosed ", filename, "\n")
@@ -103,7 +106,7 @@ def hdf5_loader(path, pattern='_[A-Z][0-9]{2}_', suffix_data='.h5', suffix_label
                     current_well = re.split(well_regex, key)[1]
                     print(f"Reading data file: " + str(i) + " / " + str(
                         file_count) + ": " + filename + "                         - Current dataset key: " + str(
-                        key) + " Well: " + current_well + " [" + str(gpCurrent) + "/" + str(gpMax) + "]   ", end="\r")
+                        key) + " Well: " + current_well + " [" + str(gp_current) + "/" + str(gp_max) + "]   ", end="\r")
 
                     current_x = np.array(f[str(key)])
                     if normalize_enum == 0:
@@ -154,8 +157,9 @@ def hdf5_loader(path, pattern='_[A-Z][0-9]{2}_', suffix_data='.h5', suffix_label
 
 ###
 
-def multiple_hdf5_loader(path_list, pattern='_[A-Z][0-9]{2}_', suffix_data='.h5', suffix_label='_label.h5', gpCurrent=0,
-                         gpMax=0, normalize_enum=1):
+def multiple_hdf5_loader(path_list: [str], pattern: str = '_[A-Z][0-9]{2}_', suffix_data: str = '.h5',
+                         suffix_label: str = '_label.h5',
+                         gp_current: int = 0, gp_max: int = 0, normalize_enum: int = 1):
     '''Helper function which loads all datasets from targeted hdf5 files in
     a specified folder. Returns X and y arrays containing all of them.
     This function uses hdf5_loader.
@@ -183,21 +187,24 @@ def multiple_hdf5_loader(path_list, pattern='_[A-Z][0-9]{2}_', suffix_data='.h5'
         y = np.asarray(y)
         X_full = np.concatenate((X_full, X), axis=0)
         y_full = np.concatenate((y_full, y), axis=0)
-        print("Finished with loading dataset located at: ", path + " [" + str(gpCurrent) + "/" + str(gpMax) + "]")
+        print("Finished with loading dataset located at: ", path + " [" + str(gp_current) + "/" + str(gp_max) + "]")
 
     return X_full, y_full
 
 
 ###
 
-def normalize_np(nparr, lower=0, upper=255):
+def normalize_np(nparr: np.ndarray, lower=0, upper=255):
     nnv = np.vectorize(normalize_np_worker)
     return nnv(nparr, lower, upper)
 
 
-def normalize_np_worker(x, lower, upper):
+def normalize_np_worker(x: float, lower: float, upper: float):
     if lower == upper:
         return 0
+
+    lower = float(lower)
+    upper = float(upper)
     return (x - lower) / (upper - lower)
 
 
@@ -225,13 +232,13 @@ def count_uniques(ndarr):
 
 ###
 
-def normalize_RGB_pixels(ndarr):
+def normalize_rgb_pixels(ndarr):
     '''normalize RGB pixel values ranging
     from 0-255 into a range of [0,1]
     '''
-    
+
     raise Exception('Depreciated')
-    return (ndarr.astype(float) / 255.0)
+    # return (ndarr.astype(float) / 255.0)
 
 
 ###
@@ -246,3 +253,15 @@ def check_predicted_classes(labels, predictions):
 def get_immediate_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir)
             if os.path.isdir(os.path.join(a_dir, name))]
+
+
+def gct():
+    return datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+
+
+def main():
+    print("Thanks for running this function, but it actually does nothing. Have a nice day. =)")
+
+
+if __name__ == "__main__":
+    main()

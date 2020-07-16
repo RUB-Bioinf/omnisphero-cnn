@@ -180,13 +180,17 @@ def multiple_hdf5_loader(path_list: [str], pattern: str = '_[A-Z][0-9]{2}_', suf
     X_full = np.empty((0, 3, 64, 64))
     y_full = np.empty((0, 1))
 
+    l = len(path_list)
+    i = 1
     for path in path_list:
         print("\nIterating over dataset at: ", path)
-        X, y = hdf5_loader(path, pattern, suffix_data, suffix_label, normalize_enum=normalize_enum)
+        X, y = hdf5_loader(path, pattern, suffix_data, suffix_label, normalize_enum=normalize_enum,gp_current=i,gp_max=l)
         X = np.asarray(X)
         y = np.asarray(y)
         X_full = np.concatenate((X_full, X), axis=0)
         y_full = np.concatenate((y_full, y), axis=0)
+
+        i = i + 1
         print("Finished with loading dataset located at: ", path + " [" + str(gp_current) + "/" + str(gp_max) + "]")
 
     return X_full, y_full

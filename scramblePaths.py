@@ -48,7 +48,7 @@ def scramble_paths(path_candidate_list: [str], validation_count: int, test_count
         return res
 
     for i in range(0, l, max(test_count, 1)):
-        for j in range(test_count):
+        for j in range(validation_count):
             path_candidate_list.append(path_candidate_list.pop(0))
         round = {}
 
@@ -63,7 +63,9 @@ def scramble_paths(path_candidate_list: [str], validation_count: int, test_count
 
         for j in range(0, validation_count):
             val.append(candidates.pop(0))
-        test = candidates[0]
+
+        if len(candidates) != 0:
+            test = candidates[0]
 
         label = ''
         label_list = candidates

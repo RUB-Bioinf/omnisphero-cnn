@@ -18,13 +18,11 @@ from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, Callback, CSVLog
 from keras.layers import Dense
 from keras.layers import Input, Conv2D, MaxPooling2D, Flatten, Dropout, BatchNormalization
 from keras.models import Model
+from keras.optimizers import SGD
+from keras.utils import multi_gpu_model
 from keras_preprocessing.image import ImageDataGenerator
 from sklearn.utils.class_weight import compute_class_weight
-# Custom Module
-###############
-from tensorflow.python.keras.utils.multi_gpu_utils import multi_gpu_model
 
-import misc_omnisphero as misc
 from misc_omnisphero import *
 from scramblePaths import *
 from test_model import test_cnn
@@ -114,8 +112,11 @@ final_neurons = [
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron/JK122_trainingData_neuron/'
 ]
 
+final_neurons_validated_validation_set = [
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_val/']
+
 final_neurons_validated = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/combinedVal_trainingData_neuron/',
+    # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/combinedVal_trainingData_neuron/',
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/EKB5_trainingData_neuron/',
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/ELS470_trainingData_neuron/',
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/ELS79_BIS-I_NPC2-5_062_trainingData_neuron/',
@@ -163,8 +164,11 @@ final_oligos = [
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/MP70_trainingData_oligo/'
 ]
 
+final_oligos_validated_validation_set = [
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_val/']
+
 final_oligos_validated = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/combinedVal_trainingData_oligo/',
+    # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/combinedVal_trainingData_oligo/',
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/EKB5_trainingData_oligo/',
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/ELS470_trainingData_oligo/',
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/ELS79_BIS-I_NPC2-5_062_trainingData_oligo/',
@@ -312,7 +316,7 @@ def custom_loss_mse(y_true, y_pred):
 # ROC stuff
 # Source: https://stackoverflow.com/questions/41032551/how-to-compute-receiving-operating-characteristic-roc-and-auc-in-keras
 class CustomCallback(Callback):
-    def __init__(self, training_data, validation_data, file_handle, reduce_rate=0.5):
+    def __init__(self, training_data, validation_data, out_path, reduce_rate=0.5):
         super().__init__()
         self.i = 0
         self.x = []
@@ -322,35 +326,59 @@ class CustomCallback(Callback):
         self.val_accuracy = []
 
         self.logs = []
+        self.file_name = out_path + 'training_custom_progress.csv'
+        if os.path.exists(self.file_name):
+            os.remove(self.file_name)
+
+        self.epoch_start_timestamp = time.time()
+        self.epoch_duration_list = []
 
         self.batchCount = 0
         self.epochCount = 0
         self.reduce_rate = reduce_rate
 
     def on_train_begin(self, logs={}):
-        f.write('Training start.' + '\n')
-        return
+        self.write_line('Training start;;'+gct()+'\n')
+        self.write_line('Epoch;Batch;Timestamp\n')
 
     def on_train_end(self, logs={}):
-        f.write('Training finished.' + '\n')
-        return
+        self.write_line('Training finished;;'+gct())
+
+        # Plotting epoch duration
+        plt.plot(epoch_duration_list)
+        plt.title('Training finished: '+gct())
+        plt.ylabel('Duration (sec)')
+        plt.xlabel('Epoch')
+
+        plt.savefig(out_path + 'training_time.png', dpi=400)
+        plt.savefig(out_path + 'training_time.svg', dpi=400, transparent=True)
+        plt.savefig(out_path + 'training_time.pdf', dpi=400, transparent=True)
+
 
     def on_epoch_begin(self, epoch, logs={}):
         self.epochCount = self.epochCount + 1
-        return
+        self.epoch_start_timestamp = time.time()
+        self.batchCount = 0
+        self.write_line()
 
     def on_epoch_end(self, epoch, logs={}):
-        print('Timestamp: ', gct())
-        return
+        t = int(self.epoch_start_timestamp - time.time())
+        self.epoch_duration_list.append(t)
 
     def on_batch_begin(self, batch, logs={}):
         self.batchCount = self.batchCount + 1
-        f.write('Beginning Batch: ' + str(self.batchCount) + '\n')
-        return
+        self.write_line()
 
     def on_batch_end(self, batch, logs={}):
-        f.write('Finished Batch: ' + str(self.batchCount) + '\n')
-        return
+        pass
+
+    def write_line(self,line=None):
+        f = open(self.file_name,'a')
+        if line is None:
+            line = str(self.epochCount)+';'+str(self.batchCount)+';'+gct()
+
+        f.write(line+'\n')
+        f.close()
 
 
 # Initiating dummy variables
@@ -369,18 +397,15 @@ class CustomCallback(Callback):
 # outPath = '/bph/home/nilfoe/Documents/CNN/results/neurons_final_softmax400/'
 
 # outPath = '/bph/puredata3/work/sas15_mirror_nils/cnn/models/debug-kontrolliert-unweighted/neuron-n4-ep1500/'
-out_path = '/bph/puredata3/work/sas15_mirror_nils/cnn/models/debug/custom_loss2/'
+out_path = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/debug/'
 
 # Test Data Old
 # test_data_path = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/oligo/EKB25_trainingData_oligo/'
 # test_data_path = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/neuron/EKB25_trainingData_neuron/'
 
 # Test Data Validated
-test_data_path = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_test/'
-# test_data_path = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_test/'
-
-print('Saving results here: ' + out_path)
-os.makedirs(out_path, exist_ok=True)
+test_data_path_oligo = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_test/'
+test_data_path_neuron = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_test/'
 
 #####################################################################
 
@@ -389,17 +414,33 @@ os.makedirs(out_path, exist_ok=True)
 img_dpi_default = 550
 batch_size = 100
 n_classes = 1
-lossEnum = 'binary_crossentropy'
 data_format = 'channels_last'
-optimizer_name = 'adadelta'
 learn_rate = 0.0001
-epochs = 5
+epochs = 1500
 # Erfahrung zeigt: 300 Epochen für Oligos, 400 für Neurons
 
 # We want to train on 64x64x3 RGB images. Thus, our height, width and depth should be adjusted accordingly
 input_height = 64
 input_width = 64
 input_depth = 3
+
+# Loss enum determines the loss function used during fitting.
+# Possible entries:
+# 'binary_crossentropy', 'mse'
+lossEnum = 'binary_crossentropy'
+
+# Optimizer name determines the optimizer used during fitting.
+# Possible entries:
+# 'adadelta', 'adam', 'SGD'
+optimizer = SGD(lr=learn_rate)
+# TODO actually use this
+
+
+# Metrics name determines the metrics used during fitting.
+# Possible entries:
+# 'mean_sqaure_error, 'accuracy'
+metrics = ['accuracy']
+# TODO actually use this
 
 # normalize_enum is an enum to determine normalisation as follows:
 # 0 = no normalisation
@@ -410,9 +451,8 @@ input_depth = 3
 normalize_enum = 4
 
 
-def train_model_scrambling(path_candidate_list: [str], out_path: str, validation_count: int = 2, predict_count: int = 0,
-                           test_data_path: str = test_data_path):
-    scramble_results = scramble_paths(path_candidate_list=path_candidate_list, test_count=predict_count,
+def train_model_scrambling(path_candidate_list: [str], out_path: str, test_data_path: str, validation_count: int = 2):
+    scramble_results = scramble_paths(path_candidate_list=path_candidate_list, test_count=0,
                                       validation_count=validation_count)
 
     scramble_size = len(scramble_results)
@@ -434,12 +474,12 @@ def train_model_scrambling(path_candidate_list: [str], out_path: str, validation
         # AUGMENTATION
         data_gen = get_default_augmenter()
 
-        print("Starting scrambling round: " + str(n) + " out of " + str(scramble_size))
+        print("Starting scrambling round: " + str(n+1) + " out of " + str(scramble_size))
         train_model(training_path_list=training_path_list,
                     validation_path_list=validation_path_list,
                     test_data_path=test_data_path,
                     out_path=out_path_current,
-                    global_progress_current=n,
+                    global_progress_current=(n+1),
                     global_progress_max=scramble_size, label=label, data_gen=data_gen)
 
     print("Finished high throughput training of " + str(scramble_size) + " models!")
@@ -454,8 +494,12 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
                 batch_size: int = batch_size, learn_rate: int = learn_rate,
                 epochs: int = epochs, global_progress_current: int = 1, global_progress_max: int = 1,
                 gpu_index_string: str = gpu_index_string, img_dpi: int = img_dpi_default,
+                optimizer=optimizer, metrics=metrics,
                 data_gen: ImageDataGenerator = None, label: str = None):
     # Creating specific out dirs
+    print('Saving results here: ' + out_path)
+    os.makedirs(out_path, exist_ok=True)
+
     augment_path = out_path + 'augments' + os.sep
     fig_path = out_path + 'fig' + os.sep
     fig_path_model = fig_path + 'model' + os.sep
@@ -466,20 +510,21 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
 
     # Logging the directories used for training
     f = open(out_path + 'training_data_used.txt', 'w+')
-    f.write('Current time: ' + gct())
+    f.write('Current time: ' + gct() + '\n')
     f.write('Training paths:\n')
     for i in range(len(training_path_list)):
         f.write(training_path_list[i] + '\n')
     f.write('\nValidation paths:\n')
     for i in range(len(validation_path_list)):
         f.write(validation_path_list[i] + '\n')
+    f.write('\n\nTest data paths:\n' + test_data_path)
     f.close()
 
     # TRAINING DATA
     ###############
     print("Loading. Training data size: " + str(len(training_path_list)))
-    X, y = misc.multiple_hdf5_loader(training_path_list, gp_current=global_progress_current, gp_max=global_progress_max,
-                                     normalize_enum=normalize_enum)  # load datasets
+    X, y = multiple_hdf5_loader(training_path_list, gp_current=global_progress_current, gp_max=global_progress_max,
+                                normalize_enum=normalize_enum)  # load datasets
 
     print(y.shape)
     if n_classes == 2:
@@ -493,16 +538,17 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     y = y.astype(np.int)
     print("X-shape (corrected): " + str(X.shape))
 
-    print("Fitting X to the data-gen.")
-    data_gen.fit(X)
-    print("Done.")
+    if data_gen is not None:
+        print("Fitting X to the data-gen.")
+        data_gen.fit(X)
+        print("Done.")
 
     # VALIDATION DATA
     #################
     print("Validation data size: " + str(len(validation_path_list)))
-    X_val, y_val = misc.multiple_hdf5_loader(validation_path_list, gp_current=global_progress_current,
-                                             gp_max=global_progress_max,
-                                             normalize_enum=normalize_enum)
+    X_val, y_val = multiple_hdf5_loader(validation_path_list, gp_current=global_progress_current,
+                                        gp_max=global_progress_max,
+                                        normalize_enum=normalize_enum)
     print("Validation data shape: " + str(y_val.shape))
     if n_classes == 2:
         y_val = np.append(y_val, 1 - y_val, axis=1)
@@ -541,10 +587,11 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
 
     print("Compiling model...")
     # model.compile(loss=custom_loss_mse, optimizer=SGD(lr=learn_rate), metrics=['accuracy'])
-    model.compile(loss='mse', optimizer='adam', metrics=['mean_squared_error'])
+    model.compile(loss=lossEnum, optimizer=optimizer, metrics=metrics)
     # TODO use dynamic params
     model.summary()
     print("Model output shape: ", model.output_shape)
+    print("Model metric names: " + str(model.metrics_names))
 
     # Printing the model summary. To a file.
     # Yea, it's that complicated. Thanks keras... >.<
@@ -557,11 +604,13 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
 
     # plot_model(model, to_file=outPathCurrent + label + '_model.png', show_shapes=True, show_layer_names=True)
     f = open(out_path + 'model.txt', 'w+')
+    data_gen_description = 'None.'
+    if data_gen is not None:
+        data_gen_description = 'Used: ' + str(data_gen)
 
-    f.write('Training time: ' + gct())
+    f.write('Training time: ' + gct()+'\n')
     if label is not None:
         f.write('Label: ' + label + '\n')
-    f.write('Optimizer: SGD\n')
     f.write('Loss: ' + lossEnum + '\n')
     f.write('GPUs: ' + gpu_index_string + '\n')
     f.write('Steps per epoch: ' + str(steps_per_epoch) + '\n')
@@ -574,6 +623,10 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     f.write('Learn Rate: ' + str(learn_rate) + '\n')
     f.write('Epochs: ' + str(epochs) + '\n')
     f.write('Normalization mode: ' + str(normalize_enum) + '\n')
+    f.write('Model metrics: ' + str(model.metrics_names) + '\n')
+    f.write('Model optimizer: ' + str(optimizer) + '\n')
+    f.write('Model metrics raw: ' + str(metrics) + '\n')
+    f.write('Data Generator used: ' + data_gen_description + '\n')
     f.close()
 
     f = open(out_path + 'model.json', 'w+')
@@ -614,7 +667,6 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     # CALLBACKS
     ###########
     weights_best_filename = out_path + 'weights_best.h5'
-    f = open(out_path + 'training_progress.txt', 'w+')
     model_checkpoint = ModelCheckpoint(weights_best_filename, monitor='val_loss', verbose=1,
                                        save_best_only=True, mode='min')
     lrCallBack = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=60, verbose=0, mode='auto',
@@ -624,7 +676,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     callbacks_list = [model_checkpoint,
                       lrCallBack,
                       csv_logger,
-                      CustomCallback(training_data=(X, y), validation_data=(X_val, y_val), file_handle=f)]
+                      CustomCallback(training_data=(X, y), validation_data=(X_val, y_val), out_path=out_path)]
 
     # TRAINING
     ##########
@@ -687,7 +739,9 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     print("Finished loading weights.")
 
     try:
-        test_cnn(out_path, test_data_path, normalize_enum, img_dpi, gpu_index_string, True, label='train-test')
+        print('Test started')
+        #test_cnn(out_path, test_data_path, normalize_enum, img_dpi, gpu_index_string, True, label='train-test')
+        print('Test finished')
     except Exception as e:
         print(gct() + " Failed to execute CNN TEST!")
         pass
@@ -711,67 +765,159 @@ def get_default_augmenter() -> ImageDataGenerator:
 
 
 def plot_training_history(history_all, fig_path, epochs, img_dpi=img_dpi_default):
-    history = [np.zeros((epochs, 4), dtype=np.float32)]
-    history[0][:, 0] = history_all.history['loss']
-    history[0][:, 1] = history_all.history['acc']
-    history[0][:, 2] = history_all.history['val_loss']
-    history[0][:, 3] = history_all.history['val_acc']
+    hist_key_set = history_all.history.keys()
+    history = [np.zeros((epochs, len(hist_key_set)), dtype=np.float32)]
+
+    # Plot training & validation accuracy values
+    i = 0
+    out_file_header = "Epoch;"
+
+    for hist_key in hist_key_set:
+        label = decode_history_key(hist_key)
+        out_file_header = out_file_header + label + ";"
+        history[0][:, i] = history_all.history[hist_key]
+
+        plt.plot(history_all.history[hist_key])
+        plt.title(label)
+        plt.ylabel(label)
+        plt.xlabel('Epoch')
+
+        plt.savefig(fig_path + 'raw_' + hist_key + '.png', dpi=img_dpi)
+        plt.savefig(fig_path + 'raw_' + hist_key + '.svg', dpi=img_dpi, transparent=True)
+        plt.savefig(fig_path + 'raw_' + hist_key + '.pdf', dpi=img_dpi, transparent=True)
+        plt.clf()
+
+        i = i + 1
+        print('Saved raw data for: ' + hist_key + ' [' + label + '].')
+
+        val_hist_key = 'val_' + hist_key
+        if val_hist_key in hist_key_set:
+            val_label = decode_history_key(val_hist_key)
+
+            plt.plot(history_all.history[hist_key])
+            plt.plot(history_all.history[val_hist_key])
+            plt.title('Model ' + label)
+            plt.ylabel(label)
+            plt.xlabel('Epoch')
+            plt.legend(['Train', 'Validation'], loc='best')
+
+            plt.savefig(fig_path + 'val_' + hist_key + '.png', dpi=img_dpi)
+            plt.savefig(fig_path + 'val_' + hist_key + '.svg', dpi=img_dpi, transparent=True)
+            plt.savefig(fig_path + 'val_' + hist_key + '.pdf', dpi=img_dpi, transparent=True)
+            plt.clf()
+            print('Saved combined validation: ' + label + ' & ' + val_label)
+
+    if 'acc' in hist_key_set and 'val_acc' in hist_key_set:
+        plt.plot(history_all.history['acc'])
+        plt.plot(history_all.history['val_acc'])
+        plt.title('Model accuracy')
+        plt.ylabel('Accuracy')
+        plt.xlabel('Epoch')
+        plt.legend(['Train', 'Validation'], loc='best')
+
+        plt.savefig(fig_path + 'accuracy.png', dpi=img_dpi)
+        plt.savefig(fig_path + 'accuracy.svg', dpi=img_dpi, transparent=True)
+        plt.savefig(fig_path + 'accuracy.pdf', dpi=img_dpi, transparent=True)
+        plt.clf()
+        print('Saved accuracy.')
+
+    if 'loss' in hist_key_set and 'val_loss' in hist_key_set:
+        # Plot training & validation loss values
+        plt.plot(history_all.history['loss'])
+        plt.plot(history_all.history['val_loss'])
+        plt.title('Model loss')
+        plt.ylabel('Loss')
+        plt.xlabel('Epoch')
+        plt.legend(['Train', 'Validation'], loc='best')
+
+        plt.savefig(fig_path + 'loss.png', dpi=img_dpi)
+        plt.savefig(fig_path + 'loss.pdf', dpi=img_dpi, transparent=True)
+        plt.savefig(fig_path + 'loss.svg', dpi=img_dpi, transparent=True)
+        plt.clf()
+        print('Saved loss.')
 
     # SAVING HISTORY
     np.save(fig_path + "history.npy", history)
     print('Saved history.')
 
-    # Plot training & validation accuracy values
-    plt.plot(history_all.history['acc'])
-    plt.plot(history_all.history['val_acc'])
-    plt.title('Model accuracy')
-    plt.ylabel('Accuracy')
-    plt.xlabel('Epoch')
-    plt.legend(['Train', 'Validation'], loc='best')
-
-    plt.savefig(fig_path + 'accuracy.png', dpi=img_dpi)
-    plt.savefig(fig_path + 'accuracy.svg', dpi=img_dpi, transparent=True)
-    plt.savefig(fig_path + 'accuracy.pdf', dpi=img_dpi, transparent=True)
-    plt.clf()
-    print('Saved accuracy.')
-
-    # Plot training & validation loss values
-    plt.plot(history_all.history['loss'])
-    plt.plot(history_all.history['val_loss'])
-    plt.title('Model loss')
-    plt.ylabel('Loss')
-    plt.xlabel('Epoch')
-    plt.legend(['Train', 'Validation'], loc='best')
-
-    plt.savefig(fig_path + 'loss.png', dpi=img_dpi)
-    plt.savefig(fig_path + 'loss.pdf', dpi=img_dpi, transparent=True)
-    plt.savefig(fig_path + 'loss.svg', dpi=img_dpi, transparent=True)
-    plt.clf()
-    print('Saved loss.')
-
     # Saving raw plot data
     print('Saving raw plot data.')
     f = open(fig_path + "plot_data_raw.csv", 'w+')
-    f.write('Epoch;Accuracy;Validation Accuracy;Loss;Validation Loss\n')
+    f.write(out_file_header + '\n')
     for i in range(epochs):
-        f.write(
-            str(i + 1) + ';' + str(history_all.history['acc'][i]) + ';' + str(history_all.history['val_acc'][i]) + ';' +
-            str(history_all.history['loss'][i]) + ';' + str(history_all.history['val_loss'][i]) + ';' + str(
-                history_all.history['acc'][i]) + ';\n')
+        out_line = str(i + 1) + ';'
+        for hist_key in hist_key_set:
+            out_line = out_line + str(history_all.history[hist_key][i]) + ';'
+        f.write(out_line + '\n')
     f.close()
+
+
+def decode_history_key(key: str) -> str:
+    if key == 'lr':
+        return "Learn Rate"
+    if key == 'acc':
+        return "Accuracy"
+    if key == 'mean_squared_error':
+        return "Mean Squared Error"
+    if key == 'val_mean_squared_error':
+        return "Validation Mean Squared Error"
+    if key == 'loss':
+        return "Loss"
+    if key == 'val_acc':
+        return "Validation Accuracy"
+    if key == 'val_loss':
+        return "Validation Loss"
+
+    print("Warning! Key: " + key + " has no extended figure label!")
+    return key
 
 
 def main():
     # AUGMENTATION
     data_gen = get_default_augmenter()
 
-    train_model(
-        training_path_list=debug_oligos,
-        validation_path_list=debug_oligos_validation,
-        test_data_path=test_data_path,
-        data_gen=data_gen,
-        out_path=out_path
-    )
+    out_path_base = out_path + 'paper-final_no-datagen'+os.sep
+    out_path_oligo = out_path_base+'oligo' + os.sep
+    out_path_neuron = out_path_base + 'neuron' + os.sep
+
+    oligo_mode = True
+    neuron_mode = True
+
+    print('Sleeping....')
+    #time.sleep(18000)
+
+    if oligo_mode:
+        train_model(
+            training_path_list=final_oligos_validated,
+            validation_path_list=final_oligos_validated_validation_set,
+            test_data_path=test_data_path_oligo,
+            #data_gen=data_gen,
+            out_path=out_path_oligo,
+            gpu_index_string="0,1,2,3"
+        )
+    if neuron_mode:
+        train_model(
+            training_path_list=final_neurons_validated,
+            validation_path_list=final_neurons_validated_validation_set,
+            test_data_path=test_data_path_neuron,
+            #data_gen=data_gen,
+            out_path=out_path_neuron,
+            gpu_index_string="0,1,2,3"
+        )
+
+    # out_path_oligo = out_path+'oligo'+os.sep
+    # out_path_neuron = out_path+'neuron'+os.sep
+
+
+#
+# train_model_scrambling(path_candidate_list=final_oligos_validated,
+#                       test_data_path=test_data_path_oligo,
+#                       out_path=out_path_oligo,
+#                       validation_count=1)
+# train_model_scrambling(path_candidate_list=final_neurons_validated,
+#                       test_data_path=test_data_path_neuron,
+#                       out_path=out_path_neuron,
+#                       validation_count=1)
 
 
 if __name__ == "__main__":

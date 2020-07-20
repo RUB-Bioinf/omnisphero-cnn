@@ -14,9 +14,13 @@ PROJECT: Omnisphero CNN
 # IMPORTS
 ########
 
+#Smote for image classification: https://medium.com/swlh/how-to-use-smote-for-dealing-with-imbalanced-image-dataset-for-solving-classification-problems-3aba7d2b9cad
+
 import os
 import re
 from datetime import datetime
+
+#import imblearn
 
 import h5py
 import numpy as np

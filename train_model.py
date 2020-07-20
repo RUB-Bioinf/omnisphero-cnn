@@ -12,9 +12,10 @@ import math
 import sys
 import time
 
+import socket
 import keras.backend as K
 import matplotlib.pyplot as plt
-from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, Callback, CSVLogger
+from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, Callback, CSVLogger, EarlyStopping
 from keras.layers import Dense
 from keras.layers import Input, Conv2D, MaxPooling2D, Flatten, Dropout, BatchNormalization
 from keras.models import Model
@@ -27,7 +28,7 @@ from misc_omnisphero import *
 from scramblePaths import *
 from test_model import test_cnn
 
-gpu_index_string = "2"
+gpu_index_string = "0"
 # gpuIndexString = "0,1,2"
 
 # =========== List of all available neuron experiments on SAS15 ============================================================================
@@ -204,22 +205,15 @@ final_oligos_adjusted_only = [
 ]
 
 debug_neurons = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_debug/combinedVal_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_debug/EKB5_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_debug/ESM9_trainingData_neuron/'
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_debug/EKB5_trainingData_neuron/'
 ]
 
 debug_oligos = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_debug/combinedVal_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_debug/EKB5_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_debug/ELS81_trainingData_oligo/'
-    # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/JK122_trainingData_oligo/',
-    # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/JK155_trainingData_oligo/',
-    # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo/JK156_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_debug/EKB5_trainingData_oligo/'
 ]
 
 debug_oligos_validation = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_debug/combinedVal_trainingData_oligo/'
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_debug_val/'
 ]
 
 
@@ -315,45 +309,41 @@ def custom_loss_mse(y_true, y_pred):
 
 # ROC stuff
 # Source: https://stackoverflow.com/questions/41032551/how-to-compute-receiving-operating-characteristic-roc-and-auc-in-keras
-class CustomCallback(Callback):
-    def __init__(self, training_data, validation_data, out_path, reduce_rate=0.5):
-        super().__init__()
-        self.i = 0
-        self.x = []
-        self.losses = []
-        self.val_losses = []
-        self.accuracy = []
-        self.val_accuracy = []
+class PlotTrainingLiveCallback(Callback):
+    # packages required: os, socket, matplotlib as plt
 
-        self.logs = []
+    def __init__(self, out_path, gpu_index_string):
+        super().__init__()
+        self.gpu_index_string = gpu_index_string
         self.file_name = out_path + 'training_custom_progress.csv'
         if os.path.exists(self.file_name):
             os.remove(self.file_name)
 
+        self.live_plot_dir = out_path + 'live_plot' + os.sep
+        os.makedirs(self.live_plot_dir, exist_ok=True)
+
         self.epoch_start_timestamp = time.time()
         self.epoch_duration_list = []
+        self.out_path = out_path
+        self.host_name = str(socket.gethostname())
 
         self.batchCount = 0
         self.epochCount = 0
-        self.reduce_rate = reduce_rate
+
+        self.history_list_loss = []
+        self.history_list_loss_val = []
+        self.history_list_acc = []
+        self.history_list_acc_val = []
+        self.history_list_lr = []
 
     def on_train_begin(self, logs={}):
-        self.write_line('Training start;;'+gct()+'\n')
+        self.write_line('Training start;;' + gct() + '\n')
         self.write_line('Epoch;Batch;Timestamp\n')
 
     def on_train_end(self, logs={}):
-        self.write_line('Training finished;;'+gct())
-
-        # Plotting epoch duration
-        plt.plot(epoch_duration_list)
-        plt.title('Training finished: '+gct())
-        plt.ylabel('Duration (sec)')
-        plt.xlabel('Epoch')
-
-        plt.savefig(out_path + 'training_time.png', dpi=400)
-        plt.savefig(out_path + 'training_time.svg', dpi=400, transparent=True)
-        plt.savefig(out_path + 'training_time.pdf', dpi=400, transparent=True)
-
+        self.write_line('Training finished;;' + gct())
+        self.plot_training_time()
+        self.plot_training_history_live()
 
     def on_epoch_begin(self, epoch, logs={}):
         self.epochCount = self.epochCount + 1
@@ -362,8 +352,17 @@ class CustomCallback(Callback):
         self.write_line()
 
     def on_epoch_end(self, epoch, logs={}):
-        t = int(self.epoch_start_timestamp - time.time())
+        t = int(time.time() - self.epoch_start_timestamp)
         self.epoch_duration_list.append(t)
+
+        self.history_list_loss.append(logs['loss'])
+        self.history_list_loss_val.append(logs['val_loss'])
+        self.history_list_acc.append(logs['acc'])
+        self.history_list_acc_val.append(logs['val_acc'])
+        self.history_list_lr.append(logs['lr'])
+
+        self.plot_training_time()
+        self.plot_training_history_live()
 
     def on_batch_begin(self, batch, logs={}):
         self.batchCount = self.batchCount + 1
@@ -372,13 +371,77 @@ class CustomCallback(Callback):
     def on_batch_end(self, batch, logs={}):
         pass
 
-    def write_line(self,line=None):
-        f = open(self.file_name,'a')
-        if line is None:
-            line = str(self.epochCount)+';'+str(self.batchCount)+';'+gct()
+    def write_line(self, line=None):
+        try:
+            f = open(self.file_name, 'a')
+            if line is None:
+                line = str(self.epochCount) + ';' + str(self.batchCount) + ';' + gct()
 
-        f.write(line+'\n')
-        f.close()
+            f.write(line + '\n')
+            f.close()
+        except Exception as e:
+            # TODO print stacktrace
+            pass
+
+    def plot_training_time(self):
+        # Plotting epoch duration
+        try:
+            plt.plot(self.epoch_duration_list)
+            plt.title('Training on '+self.host_name+': ' + gct() + '. GPUS: [' + self.gpu_index_string+']')
+            plt.ylabel('Duration (sec)')
+            plt.xlabel('Epoch')
+
+            plt.savefig(self.out_path + 'training_time.png', dpi=400)
+            plt.savefig(self.live_plot_dir + 'training_time_live.png', dpi=400)
+            plt.savefig(self.live_plot_dir + 'training_time_live.svg', dpi=400, transparent=True)
+            plt.savefig(self.live_plot_dir + 'training_time_live.pdf', dpi=400, transparent=True)
+            plt.clf()
+        except Exception as e:
+            # TODO print stacktrace
+            pass
+
+    def plot_training_history_live(self):
+        # Plotting epoch duration
+        try:
+            # Plot training & validation loss values
+            plt.plot(self.history_list_loss)
+            plt.plot(self.history_list_loss_val)
+            plt.title('Live: Model loss')
+            plt.ylabel('Loss')
+            plt.xlabel('Epoch')
+            plt.legend(['Train', 'Validation'], loc='best')
+
+            plt.savefig(self.live_plot_dir + 'loss_live.png', dpi=400)
+            plt.savefig(self.live_plot_dir + 'loss_live.pdf', dpi=400, transparent=True)
+            plt.savefig(self.live_plot_dir + 'loss_live.svg', dpi=400, transparent=True)
+            plt.clf()
+
+            # Plot accuracy loss values
+            plt.plot(self.history_list_acc)
+            plt.plot(self.history_list_acc_val)
+            plt.title('Live: Model accuracy')
+            plt.ylabel('Accuracy')
+            plt.xlabel('Epoch')
+            plt.legend(['Train', 'Validation'], loc='best')
+
+            plt.savefig(self.live_plot_dir + 'accuracy_live.png', dpi=400)
+            plt.savefig(self.live_plot_dir + 'accuracy_live.svg', dpi=400, transparent=True)
+            plt.savefig(self.live_plot_dir + 'accuracy_live.pdf', dpi=400, transparent=True)
+            plt.clf()
+
+            # Plot accuracy loss values
+            plt.plot(self.history_list_lr)
+            plt.title('Live: Model learn rate')
+            plt.ylabel('Accuracy')
+            plt.xlabel('Epoch')
+
+            plt.savefig(self.live_plot_dir + 'learn_rate_live.png', dpi=400)
+            plt.savefig(self.live_plot_dir + 'learn_rate_live.svg', dpi=400, transparent=True)
+            plt.savefig(self.live_plot_dir + 'learn_rate_live.pdf', dpi=400, transparent=True)
+            plt.clf()
+        except Exception as e:
+            # TODO print stacktrace
+            pass
 
 
 # Initiating dummy variables
@@ -474,12 +537,12 @@ def train_model_scrambling(path_candidate_list: [str], out_path: str, test_data_
         # AUGMENTATION
         data_gen = get_default_augmenter()
 
-        print("Starting scrambling round: " + str(n+1) + " out of " + str(scramble_size))
+        print("Starting scrambling round: " + str(n + 1) + " out of " + str(scramble_size))
         train_model(training_path_list=training_path_list,
                     validation_path_list=validation_path_list,
                     test_data_path=test_data_path,
                     out_path=out_path_current,
-                    global_progress_current=(n+1),
+                    global_progress_current=(n + 1),
                     global_progress_max=scramble_size, label=label, data_gen=data_gen)
 
     print("Finished high throughput training of " + str(scramble_size) + " models!")
@@ -608,7 +671,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     if data_gen is not None:
         data_gen_description = 'Used: ' + str(data_gen)
 
-    f.write('Training time: ' + gct()+'\n')
+    f.write('Training time: ' + gct() + '\n')
     if label is not None:
         f.write('Label: ' + label + '\n')
     f.write('Loss: ' + lossEnum + '\n')
@@ -666,17 +729,23 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
 
     # CALLBACKS
     ###########
+    learn_rate_reduction_patience = 60
+    es_patience = int(float(learn_rate_reduction_patience) * 4.1337)
+
     weights_best_filename = out_path + 'weights_best.h5'
-    model_checkpoint = ModelCheckpoint(weights_best_filename, monitor='val_loss', verbose=1,
-                                       save_best_only=True, mode='min')
-    lrCallBack = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=60, verbose=0, mode='auto',
-                                   min_delta=0.0001, cooldown=0, min_lr=0)
+    model_checkpoint = ModelCheckpoint(weights_best_filename, monitor='val_loss', verbose=1, save_best_only=True,
+                                       mode='min')
+    lrCallBack = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=learn_rate_reduction_patience, verbose=1,
+                                   mode='auto', min_delta=0.000001, cooldown=0, min_lr=0)
     csv_logger = CSVLogger(log_out_path, separator=';', append=True)
+    early_stop_callback = EarlyStopping(monitor='val_loss', patience=es_patience, verbose=1, mode='auto', baseline=None,
+                                        restore_best_weights=False)
 
     callbacks_list = [model_checkpoint,
                       lrCallBack,
                       csv_logger,
-                      CustomCallback(training_data=(X, y), validation_data=(X_val, y_val), out_path=out_path)]
+                      early_stop_callback,
+                      PlotTrainingLiveCallback(out_path=out_path, gpu_index_string=gpu_index_string)]
 
     # TRAINING
     ##########
@@ -725,26 +794,32 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     print('Saved model: ' + out_path + 'model.h5')
 
     # Saving plots
-    plot_training_history(history_all=history_all, fig_path=fig_path, epochs=epochs, img_dpi=img_dpi)
+    try:
+        plot_training_history(history_all=history_all, fig_path=fig_path, epochs=epochs, img_dpi=img_dpi)
+    except Exception as e:
+        print(gct() + " Failed plot history!!")
+        # TODO print stacktrace
 
     # SAVING ON MEMORY
     del X_val
     del X
     del y
+    del y_val
+    del model
 
     # TEST DATA
     #################
-    print("Loading best weights again to be tested.")
-    model.load_weights(weights_best_filename)
-    print("Finished loading weights.")
+    # Not needed anymore, since testing has been outsourced into its own function
+    # print("Loading best weights again to be tested.")
+    # model.load_weights(weights_best_filename)
+    # print("Finished loading weights.")
 
     try:
         print('Test started')
-        #test_cnn(out_path, test_data_path, normalize_enum, img_dpi, gpu_index_string, True, label='train-test')
+        # test_cnn(out_path, test_data_path, normalize_enum, img_dpi, gpu_index_string, True, label='train-test')
         print('Test finished')
     except Exception as e:
         print(gct() + " Failed to execute CNN TEST!")
-        pass
         # TODO print stacktrace
 
     # END OF Training
@@ -847,8 +922,10 @@ def plot_training_history(history_all, fig_path, epochs, img_dpi=img_dpi_default
     for i in range(epochs):
         out_line = str(i + 1) + ';'
         for hist_key in hist_key_set:
-            out_line = out_line + str(history_all.history[hist_key][i]) + ';'
-        f.write(out_line + '\n')
+            try:
+                out_line = out_line + str(history_all.history[hist_key][i]) + ';'
+            except Exception as e:
+                out_line = 'Error'
     f.close()
 
 
@@ -876,31 +953,48 @@ def main():
     # AUGMENTATION
     data_gen = get_default_augmenter()
 
-    out_path_base = out_path + 'paper-final_no-datagen'+os.sep
-    out_path_oligo = out_path_base+'oligo' + os.sep
+    out_path_base = out_path + 'paper-final_no-datagen' + os.sep
+    out_path_oligo = out_path_base + 'oligo' + os.sep
     out_path_neuron = out_path_base + 'neuron' + os.sep
 
-    oligo_mode = True
-    neuron_mode = True
+    out_path_oligo_debug = out_path_base + 'oligo_debug' + os.sep
+
+    oligo_mode = False
+    neuron_mode = False
+    debug_mode = True
 
     print('Sleeping....')
-    #time.sleep(18000)
+    # time.sleep(18000)
+
+    if debug_mode:
+        train_model(
+            training_path_list=debug_oligos,
+            validation_path_list=debug_oligos_validation,
+            test_data_path=test_data_path_oligo,
+
+            # data_gen=data_gen,
+            out_path=out_path_oligo_debug,
+            gpu_index_string="0,1,2,3",
+            epochs=5
+        )
 
     if oligo_mode:
         train_model(
             training_path_list=final_oligos_validated,
             validation_path_list=final_oligos_validated_validation_set,
             test_data_path=test_data_path_oligo,
-            #data_gen=data_gen,
+
+            # data_gen=data_gen,
             out_path=out_path_oligo,
             gpu_index_string="0,1,2,3"
         )
+
     if neuron_mode:
         train_model(
             training_path_list=final_neurons_validated,
             validation_path_list=final_neurons_validated_validation_set,
             test_data_path=test_data_path_neuron,
-            #data_gen=data_gen,
+            # data_gen=data_gen,
             out_path=out_path_neuron,
             gpu_index_string="0,1,2,3"
         )

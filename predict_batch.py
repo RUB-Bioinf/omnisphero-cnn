@@ -19,12 +19,12 @@ from keras.models import load_model
 ###############
 import misc_omnisphero as misc
 
-gpu_index_string = "0"
+gpu_index_string = "2"
 
 # MODELS IN USE
 # Default trained for N1 normalisation
-modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/results/oligo_final_sigmodal/0_custom/'
-# modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/results/neuron_final_sigmodal/0_custom/'
+model_source_path_oligo = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/results/oligo_final_sigmodal/0_custom/'
+model_source_path_neuron = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/results/neuron_final_sigmodal/0_custom/'
 
 # MODELS TO DEBUG THAT FEATURE N4 NORMALISATION
 # modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/debug-normalizing/oligo-n4/0_custom/'
@@ -33,8 +33,8 @@ modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/results/o
 # MODELS TO BE VALIDATED
 # modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/oligo_fieldTest_WObrightness_longer/0_custom/'
 
-source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_40/'
-# source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_40/'
+source_dir_oligo = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_43/'
+source_dir_neuron = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_43/'
 
 # ######### To validate, use these whole well experiments: #########
 # source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/oligo/unannotated/'
@@ -202,8 +202,16 @@ def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int =
 
 
 def main():
-    predict_batch(model_source_path=modelSourcePath, source_dir=source_dir, normalize_enum=normalize_enum,
-                  gpu_index_string=gpu_index_string)
+    use_oligo = False
+    use_neuron = True
+
+    if use_neuron:
+        predict_batch(model_source_path=model_source_path_neuron, source_dir=source_dir_neuron, normalize_enum=normalize_enum,
+                  gpu_index_string="2")
+
+    if use_oligo:
+        predict_batch(model_source_path=model_source_path_oligo, source_dir=source_dir_oligo, normalize_enum=normalize_enum,
+                  gpu_index_string="3")
 
 
 if __name__ == "__main__":

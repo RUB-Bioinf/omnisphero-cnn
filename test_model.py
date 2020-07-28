@@ -16,12 +16,12 @@ cuda_devices = "0"
 # OLD DATA
 # model_path = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/results/oligo_final_sigmodal/0_custom/'
 # test_data_path = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/oligo/EKB25_trainingData_oligo/'
-test_data_path = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/neuron/EKB25_trainingData_neuron/'
+#test_data_path = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/neuron/EKB25_trainingData_neuron/'
 
 # KONTROLLIERT DATA
-model_path = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/debug-kontrolliert-weighted/neuron-n4-ep1500/0_custom/'
-test_data_path = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_test/'
-# test_data_path = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_test/'
+#model_path = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/debug-kontrolliert-weighted/neuron-n4-ep1500/0_custom/'
+test_data_path_oligo = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_test/'
+test_data_path_neuron = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_test/'
 
 normalize_enum = 4
 img_dpi = 450
@@ -41,15 +41,20 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
     os.makedirs(fig_path, exist_ok=True)
 
     print('Loading model & weights')
+    print('Model path: '+model_path)
     if os.path.exists(model_path + 'custom.h5'):
         model = load_model(model_path + 'custom.h5')
         model.load_weights(model_path + 'custom_weights_best.h5')
     else:
         model = load_model(model_path + 'model.h5')
         model.load_weights(model_path + 'weights_best.h5')
+    print('Finished loading model.')
 
+    print('Loading test data: '+test_data_path)
     y_test = np.empty((0, 1))
     X_test, y_test = misc.hdf5_loader(test_data_path, gp_current=1, gp_max=1, normalize_enum=normalize_enum)
+    print('Finished loading test data.')
+
     print('Done. Preprocessing test data.')
     y_test = np.asarray(y_test)
     y_test = y_test.astype(np.int)
@@ -114,7 +119,7 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
         plt.clf()
 
         # Raw ROC data
-        print('Saving raw ROC data')
+        print('Saving raw ROC data: '+fig_path)
         f = open(fig_path + "roc_data_raw.csv", 'w+')
         f.write('i;FPR;TPR;Thresholds\n')
         for i in range(len(thresholds_roc)):
@@ -123,7 +128,6 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
         f.close()
 
         # HISTOGRAM
-
         hist_pos = y_pred_roc[np.where(y_pred_roc > 0.5)]
         plt.hist(hist_pos, bins='auto')
         plt.title("Histogram: Positive")
@@ -222,11 +226,21 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
 
 
 def main():
-    print("Running CNN test.")
-    print("Model path: " + model_path)
-    print("Test data path: " + test_data_path)
+    oligo_mode = True
+    neuron_mode = True
 
-    test_cnn(model_path, test_data_path, normalize_enum, img_dpi, cuda_devices, True, label='cnn-test')
+    o1 = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/training/debug/paper-final_datagen/oligo-old/'
+    n1 = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/training/debug/paper-final_datagen/neuron/'
+
+    print("Running CNN test.")
+    if oligo_mode:
+        #test_cnn(o1, test_data_path_oligo, normalize_enum, img_dpi, cuda_devices, True, label='cnn-test')
+        test_cnn(o1, test_data_path_oligo, normalize_enum, img_dpi, cuda_devices, True, label='cnn-test')
+        pass
+    if neuron_mode:
+        #test_cnn(n1, test_data_path_neuron, normalize_enum, img_dpi, cuda_devices, True, label='cnn-test')
+        #test_cnn(n2, test_data_path_neuron, normalize_enum, img_dpi, cuda_devices, True, label='cnn-test')
+        pass
 
     print('Testing done.')
 

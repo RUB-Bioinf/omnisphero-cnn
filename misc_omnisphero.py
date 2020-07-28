@@ -20,7 +20,12 @@ import os
 import re
 from datetime import datetime
 
-#import imblearn
+import imblearn
+import imblearn.over_sampling.smote
+# conda install -c glemaitre imbalanced-learn
+# Since conda is absolute bs, use this command to download imblearn from an external source
+# Stackoverflow answer: https://stackoverflow.com/questions/40008015/problems-importing-imblearn-python-package-on-ipython-notebook
+# There is a special place in hell for conda devs, alongside MATLAB devs
 
 import h5py
 import numpy as np

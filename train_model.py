@@ -15,6 +15,9 @@ import time
 import socket
 import keras.backend as K
 import matplotlib.pyplot as plt
+import tensorflow as tf
+import keras.backend.tensorflow_backend
+from keras.backend import tensorflow_backend
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, Callback, CSVLogger, EarlyStopping
 from keras.layers import Dense
 from keras.layers import Input, Conv2D, MaxPooling2D, Flatten, Dropout, BatchNormalization
@@ -23,10 +26,20 @@ from keras.optimizers import SGD
 from keras.utils import multi_gpu_model
 from keras_preprocessing.image import ImageDataGenerator
 from sklearn.utils.class_weight import compute_class_weight
+from keras.backend.tensorflow_backend import set_session
 
+# Custom Imports
 from misc_omnisphero import *
 from scramblePaths import *
 from test_model import test_cnn
+
+# Keras session
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True  # dynamically grow the memory used on the GPU
+config.log_device_placement = True  # to log device placement (on which device the operation ran)
+sess = tf.Session(config=config)
+tensorflow_backend.set_session(sess)  # set this TensorFlow session as the default session for Keras
+# Code snipit credit: https://kobkrit.com/using-allow-growth-memory-option-in-tensorflow-and-keras-dc8c8081bc96
 
 gpu_index_string = "0"
 # gpuIndexString = "0,1,2"
@@ -225,7 +238,7 @@ def omnisphero_CNN(n_classes, input_height, input_width, input_depth, data_forma
     # Input
     img_input = Input(shape=(input_height, input_width, input_depth), name='input_layer')
 
-    # Convolutional Blocks (FEATURE EXTRACTION)
+    # Convolution Blocks (FEATURE EXTRACTION)
 
     # Conv Block 1
     c1 = Conv2D(32, (3, 3), kernel_initializer='he_uniform', activation='relu', padding='same', name='block1_conv1',
@@ -293,20 +306,6 @@ def omnisphero_CNN(n_classes, input_height, input_width, input_depth, data_forma
     return model
 
 
-def custom_loss_debug(y_true, y_pred):
-    pass
-
-
-def custom_loss_mse(y_true, y_pred):
-    # shape of y_true -> (batch_size,units)
-    # shape of y_pred -> (batch_size,units)
-
-    loss = K.square(y_pred - y_true)
-    loss = K.mean(loss, axis=1)
-
-    return loss
-
-
 # ROC stuff
 # Source: https://stackoverflow.com/questions/41032551/how-to-compute-receiving-operating-characteristic-roc-and-auc-in-keras
 class PlotTrainingLiveCallback(Callback):
@@ -327,7 +326,6 @@ class PlotTrainingLiveCallback(Callback):
         self.out_path = out_path
         self.host_name = str(socket.gethostname())
 
-        self.batchCount = 0
         self.epochCount = 0
 
         self.history_list_loss = []
@@ -338,7 +336,7 @@ class PlotTrainingLiveCallback(Callback):
 
     def on_train_begin(self, logs={}):
         self.write_line('Training start;;' + gct() + '\n')
-        self.write_line('Epoch;Batch;Timestamp\n')
+        self.write_line('Epoch;Timestamp\n')
 
     def on_train_end(self, logs={}):
         self.write_line('Training finished;;' + gct())
@@ -348,7 +346,6 @@ class PlotTrainingLiveCallback(Callback):
     def on_epoch_begin(self, epoch, logs={}):
         self.epochCount = self.epochCount + 1
         self.epoch_start_timestamp = time.time()
-        self.batchCount = 0
         self.write_line()
 
     def on_epoch_end(self, epoch, logs={}):
@@ -365,8 +362,7 @@ class PlotTrainingLiveCallback(Callback):
         self.plot_training_history_live()
 
     def on_batch_begin(self, batch, logs={}):
-        self.batchCount = self.batchCount + 1
-        self.write_line()
+        pass
 
     def on_batch_end(self, batch, logs={}):
         pass
@@ -375,7 +371,7 @@ class PlotTrainingLiveCallback(Callback):
         try:
             f = open(self.file_name, 'a')
             if line is None:
-                line = str(self.epochCount) + ';' + str(self.batchCount) + ';' + gct()
+                line = str(self.epochCount) + ';' + gct()
 
             f.write(line + '\n')
             f.close()
@@ -387,7 +383,7 @@ class PlotTrainingLiveCallback(Callback):
         # Plotting epoch duration
         try:
             plt.plot(self.epoch_duration_list)
-            plt.title('Training on '+self.host_name+': ' + gct() + '. GPUS: [' + self.gpu_index_string+']')
+            plt.title('Training on ' + self.host_name + ': ' + gct() + '. GPUS: [' + self.gpu_index_string + ']')
             plt.ylabel('Duration (sec)')
             plt.xlabel('Epoch')
 
@@ -479,7 +475,7 @@ batch_size = 100
 n_classes = 1
 data_format = 'channels_last'
 learn_rate = 0.0001
-epochs = 1500
+epochs = 2000
 # Erfahrung zeigt: 300 Epochen für Oligos, 400 für Neurons
 
 # We want to train on 64x64x3 RGB images. Thus, our height, width and depth should be adjusted accordingly
@@ -648,6 +644,9 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
         print("Model has been set up to run on multiple GPUs.")
         print("Steps per epoch: " + str(steps_per_epoch))
 
+        print('WARNING! There seems to be an issue with multi gpu and batch validation size!!')
+        # https://github.com/keras-team/keras/issues/11434#issuecomment-439832556
+
     print("Compiling model...")
     # model.compile(loss=custom_loss_mse, optimizer=SGD(lr=learn_rate), metrics=['accuracy'])
     model.compile(loss=lossEnum, optimizer=optimizer, metrics=metrics)
@@ -722,6 +721,9 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
         f.write('Weights Class 1;' + str(class_weights[1]) + '\n')
     f.close()
 
+    checkpoint_out_path = out_path + 'checkpoints' + os.sep
+    os.makedirs(checkpoint_out_path, exist_ok=True)
+
     log_out_path = out_path + 'training_log.csv'
     f = open(log_out_path, 'w+')
     f.write(gct() + '\nEpoch;Accuracy;Loss;??;Validation Accuracy; Validation Loss\n')
@@ -730,18 +732,24 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     # CALLBACKS
     ###########
     learn_rate_reduction_patience = 60
-    es_patience = int(float(learn_rate_reduction_patience) * 4.1337)
+    learn_rate_factor = 0.5
+    es_patience = int(float(learn_rate_reduction_patience) * 2.1337)
+    print('Learn rate reduction by factor '+str(learn_rate_factor)+' if improvement within '+str(learn_rate_reduction_patience)+' epochs.')
+    print('Early stopping patience: '+str(es_patience))
 
     weights_best_filename = out_path + 'weights_best.h5'
-    model_checkpoint = ModelCheckpoint(weights_best_filename, monitor='val_loss', verbose=1, save_best_only=True,
-                                       mode='min')
-    lrCallBack = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=learn_rate_reduction_patience, verbose=1,
-                                   mode='auto', min_delta=0.000001, cooldown=0, min_lr=0)
+    model_checkpoint = ModelCheckpoint(checkpoint_out_path + 'weights_ep{epoch:08d}.h5', verbose=1,
+                                       save_weights_only=True, period=50)
+    model_checkpoint_best = ModelCheckpoint(weights_best_filename, monitor='val_loss', verbose=1, save_best_only=True,
+                                            mode='min')
+    lrCallBack = ReduceLROnPlateau(monitor='val_loss', factor=learn_rate_factor, patience=learn_rate_reduction_patience, verbose=1,
+                                   mode='auto', min_delta=0.000001, cooldown=0, min_lr=0.000001)
     csv_logger = CSVLogger(log_out_path, separator=';', append=True)
     early_stop_callback = EarlyStopping(monitor='val_loss', patience=es_patience, verbose=1, mode='auto', baseline=None,
-                                        restore_best_weights=False)
+                                        restore_best_weights=True) # early stopping
 
     callbacks_list = [model_checkpoint,
+                      model_checkpoint_best,
                       lrCallBack,
                       csv_logger,
                       early_stop_callback,
@@ -795,7 +803,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
 
     # Saving plots
     try:
-        plot_training_history(history_all=history_all, fig_path=fig_path, epochs=epochs, img_dpi=img_dpi)
+        plot_training_history(history_all=history_all, fig_path=fig_path, img_dpi=img_dpi)
     except Exception as e:
         print(gct() + " Failed plot history!!")
         # TODO print stacktrace
@@ -816,7 +824,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
 
     try:
         print('Test started')
-        # test_cnn(out_path, test_data_path, normalize_enum, img_dpi, gpu_index_string, True, label='train-test')
+        test_cnn(out_path, test_data_path, normalize_enum, img_dpi, gpu_index_string, True, label='train-test')
         print('Test finished')
     except Exception as e:
         print(gct() + " Failed to execute CNN TEST!")
@@ -839,7 +847,8 @@ def get_default_augmenter() -> ImageDataGenerator:
     )
 
 
-def plot_training_history(history_all, fig_path, epochs, img_dpi=img_dpi_default):
+def plot_training_history(history_all, fig_path, img_dpi=img_dpi_default):
+    epochs = len(history_all.epoch)
     hist_key_set = history_all.history.keys()
     history = [np.zeros((epochs, len(hist_key_set)), dtype=np.float32)]
 
@@ -925,6 +934,7 @@ def plot_training_history(history_all, fig_path, epochs, img_dpi=img_dpi_default
             try:
                 out_line = out_line + str(history_all.history[hist_key][i]) + ';'
             except Exception as e:
+                # TODO print stacktrace
                 out_line = 'Error'
     f.close()
 
@@ -960,8 +970,8 @@ def main():
     out_path_oligo_debug = out_path_base + 'oligo_debug' + os.sep
 
     oligo_mode = False
-    neuron_mode = False
-    debug_mode = True
+    neuron_mode = True
+    debug_mode = False
 
     print('Sleeping....')
     # time.sleep(18000)
@@ -971,22 +981,29 @@ def main():
             training_path_list=debug_oligos,
             validation_path_list=debug_oligos_validation,
             test_data_path=test_data_path_oligo,
-
             # data_gen=data_gen,
-            out_path=out_path_oligo_debug,
-            gpu_index_string="0,1,2,3",
+            #out_path=out_path_oligo_debug,
+            out_path=out_path + 'paper-debug-imaging2' + os.sep + 'oligo' + os.sep,
+            gpu_index_string="0",
             epochs=5
         )
 
     if oligo_mode:
+        #train_model(
+        #    training_path_list=final_oligos_validated,
+        #    validation_path_list=final_oligos_validated_validation_set,
+        #    test_data_path=test_data_path_oligo,
+        #    # data_gen=data_gen,
+        #    out_path=out_path + 'paper-final_no-datagen' + os.sep + 'oligo' + os.sep,
+        #    gpu_index_string="0"
+        #)
         train_model(
             training_path_list=final_oligos_validated,
             validation_path_list=final_oligos_validated_validation_set,
             test_data_path=test_data_path_oligo,
-
-            # data_gen=data_gen,
-            out_path=out_path_oligo,
-            gpu_index_string="0,1,2,3"
+            data_gen=data_gen,
+            out_path=out_path + 'paper-final_datagen' + os.sep + 'oligo' + os.sep,
+            gpu_index_string="0"
         )
 
     if neuron_mode:
@@ -995,8 +1012,16 @@ def main():
             validation_path_list=final_neurons_validated_validation_set,
             test_data_path=test_data_path_neuron,
             # data_gen=data_gen,
-            out_path=out_path_neuron,
-            gpu_index_string="0,1,2,3"
+            out_path=out_path + 'paper-final_no-datagen' + os.sep + 'neuron' + os.sep,
+            gpu_index_string="1"
+        )
+        train_model(
+            training_path_list=final_neurons_validated,
+            validation_path_list=final_neurons_validated_validation_set,
+            test_data_path=test_data_path_neuron,
+            data_gen=data_gen,
+            out_path=out_path + 'paper-final_datagen' + os.sep + 'neuron' + os.sep,
+            gpu_index_string="1"
         )
 
     # out_path_oligo = out_path+'oligo'+os.sep

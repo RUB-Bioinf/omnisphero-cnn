@@ -1055,31 +1055,11 @@ body .markdown-body
 .codehilite .vi{color:teal}
 .codehilite .il{color:#009999}
 .codehilite .gc{color:#999;background-color:#EAF2F5}
-</style><title>README</title></head><body><article class="markdown-body"><h1 id="omnisphero-cnn">Omnisphero-CNN<a class="headerlink" href="#omnisphero-cnn" title="Permanent link"></a></h1>
-<p>This repo contains a few scripts to train, validate and save CNN models for the prediction of Neurons or/and Oligos on Omnisphero data.<br />
-It can predict in batches on unannotated data to construct new &lsquo;.csv&rsquo; files.</p>
-<h4 id="train_modelpy">train_model.py<a class="headerlink" href="#train_modelpy" title="Permanent link"></a></h4>
-<ul>
-<li>Give a comma seperated path list for training data which needs to be completly annotated</li>
-<li>Give a comma seperated path list for validation data which ALSO needs to be completly annotated</li>
-<li>Define the CNN model as you wish</li>
-<li>Set saving paths for the trained model, its weights and plots</li>
-</ul>
-<h4 id="predict_batchpy">predict_batch.py<a class="headerlink" href="#predict_batchpy" title="Permanent link"></a></h4>
-<ul>
-<li>Give the location of a saved model which should be used to predict on new data</li>
-<li>Give the directory which contains unannotated data that should be labeled</li>
-</ul>
-<h2 id="required-libraries">Required libraries<a class="headerlink" href="#required-libraries" title="Permanent link"></a></h2>
-<p>Please aquire the following libraries on your own, as they are not included within this repository:</p>
-<ul>
-<li>numpy</li>
-<li>pandas</li>
-<li>keras</li>
-<li>matplotlib</li>
-<li>h5py</li>
-<li>sklearn</li>
-<li>imblearn</li>
-</ul>
-<h4 id="conda-environment">Conda Environment<a class="headerlink" href="#conda-environment" title="Permanent link"></a></h4>
-<p>Please look at the <code>/envs/</code> directory within this repository for the <i>Anaconda Environment</i> requirements file to recreate the environment used within this codebase.</p></article></body></html>
+</style><title>readme</title></head><body><article class="markdown-body"><h1 id="conda-environments">Conda Environments<a class="headerlink" href="#conda-environments" title="Permanent link"></a></h1>
+<p>These environments were used to create an <b>Anaconda Environment</b> to execute the code in this repository.
+These environments are not necessary to run the code, but contain a list of required packages and their versions and <i>Anaconda</i> automatically downloads them.</p>
+<p>You can recreate the environment using ether one of these files.</p>
+<h2 id="how-to">How to?<a class="headerlink" href="#how-to" title="Permanent link"></a></h2>
+<p>First, you need to download and install <i>Anaconda</i> from here: <a href="https://www.anaconda.com/">https://www.anaconda.com/</a></p>
+<p>Refer to the official documentation if you want to learn how to set up your own environment, based on an environment file:
+<a href="https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file">https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file</a></p></article></body></html>

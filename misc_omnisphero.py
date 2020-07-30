@@ -14,14 +14,15 @@ PROJECT: Omnisphero CNN
 # IMPORTS
 ########
 
-#Smote for image classification: https://medium.com/swlh/how-to-use-smote-for-dealing-with-imbalanced-image-dataset-for-solving-classification-problems-3aba7d2b9cad
+# Smote for image classification: https://medium.com/swlh/how-to-use-smote-for-dealing-with-imbalanced-image-dataset-for-solving-classification-problems-3aba7d2b9cad
 
 import os
 import re
 from datetime import datetime
+import time
 
 import imblearn
-import imblearn.over_sampling.smote
+from imblearn.over_sampling.smote import SMOTE
 # conda install -c glemaitre imbalanced-learn
 # Since conda is absolute bs, use this command to download imblearn from an external source
 # Stackoverflow answer: https://stackoverflow.com/questions/40008015/problems-importing-imblearn-python-package-on-ipython-notebook
@@ -192,8 +193,9 @@ def multiple_hdf5_loader(path_list: [str], pattern: str = '_[A-Z][0-9]{2}_', suf
     l = len(path_list)
     i = 1
     for path in path_list:
-        print("\nIterating over dataset at: ", path)
-        X, y = hdf5_loader(path, pattern, suffix_data, suffix_label, normalize_enum=normalize_enum,gp_current=i,gp_max=l)
+        print("\nIterating over (multi) dataset at: ", path)
+        X, y = hdf5_loader(path, pattern, suffix_data, suffix_label, normalize_enum=normalize_enum, gp_current=i,
+                           gp_max=l)
         X = np.asarray(X)
         y = np.asarray(y)
         X_full = np.concatenate((X_full, X), axis=0)
@@ -262,6 +264,24 @@ def check_predicted_classes(labels, predictions):
 
 
 ###
+
+# SMOTE default params:
+# ratio: Any = 'auto',
+# random_state: Any = None,
+# k: Any = None,
+# k_neighbors: Any = 5,
+# m: Any = None,
+# m_neighbors: Any = 10,
+# out_step: Any = 0.5,
+# kind: Any = 'regular',
+# svm_estimator: Any = None,
+# n_jobs: Any = 1
+def create_SMOTE_handler(random_state: int = None, n_jobs: int = 1) -> SMOTE:
+    if random_state is None:
+        random_state = int(time.time())
+    sm = SMOTE(random_state=random_state, n_jobs=n_jobs)
+    return sm
+
 
 def get_immediate_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir)

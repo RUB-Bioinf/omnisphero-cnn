@@ -308,6 +308,41 @@ def omnisphero_CNN(n_classes, input_height, input_width, input_depth, data_forma
 
 # ROC stuff
 # Source: https://stackoverflow.com/questions/41032551/how-to-compute-receiving-operating-characteristic-roc-and-auc-in-keras
+
+# Custom Callback: Canary Interrupt
+class CanaryInterruptCallback(Callback):
+
+    def __init__(self, path: str, starts_active: bool = True, label: str = None):
+        self.active: bool = starts_active
+        self.label = label
+        os.makedirs(path, exist_ok=True)
+
+        self.__canary_file = path + os.sep + 'canary_interrupt.txt'
+        if os.path.exists(self.__canary_file):
+            os.remove(self.__canary_file)
+
+        f = open(self.__canary_file, 'w')
+        f.write(
+            'Canary interrupt for CNN training started at ' + gct() + '.\nDelete this file to safely stop your training.')
+        if label is not None:
+            f.write('\nLabel: ' + str(label))
+        f.write('\n\nCreated by Nils Förster.')
+        f.close()
+
+        print('Placed canary file here:' + str(self.__canary_file))
+
+    def on_epoch_end(self, epoch, logs={}):
+        if self.active:
+            if not os.path.exists(self.__canary_file):
+                print('Canary file not found! Shutting down training!')
+                self.model.stop_training = True
+
+    def on_train_end(self, logs={}):
+        if os.path.exists(self.__canary_file):
+            os.remove(self.__canary_file)
+
+
+# Custom callback: Live Plotting
 class PlotTrainingLiveCallback(Callback):
     # packages required: os, socket, matplotlib as plt
 
@@ -553,8 +588,8 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
                 batch_size: int = batch_size, learn_rate: int = learn_rate,
                 epochs: int = epochs, global_progress_current: int = 1, global_progress_max: int = 1,
                 gpu_index_string: str = gpu_index_string, img_dpi: int = img_dpi_default,
-                optimizer=optimizer, metrics=metrics,
-                data_gen: ImageDataGenerator = None, label: str = None):
+                optimizer=optimizer, metrics=metrics, n_jobs: int = 1,
+                data_gen: ImageDataGenerator = None, label: str = None, use_SMOTE: bool = False):
     # Creating specific out dirs
     print('Saving results here: ' + out_path)
     os.makedirs(out_path, exist_ok=True)
@@ -581,11 +616,11 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
 
     # TRAINING DATA
     ###############
-    print("Loading. Training data size: " + str(len(training_path_list)))
+    print("Loading training data. Folder count: " + str(len(training_path_list)))
     X, y = multiple_hdf5_loader(training_path_list, gp_current=global_progress_current, gp_max=global_progress_max,
                                 normalize_enum=normalize_enum)  # load datasets
 
-    print(y.shape)
+    # print(y.shape)
     if n_classes == 2:
         y = np.append(y, 1 - y, axis=1)
     print("Finished loading training data. Loaded data has shape: ")
@@ -597,6 +632,72 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     y = y.astype(np.int)
     print("X-shape (corrected): " + str(X.shape))
 
+    print('SMOTE mode: ' + str(use_SMOTE))
+    smote_params: str = 'No SMOTE used'
+    smote_error_text = 'N/A.'
+    if use_SMOTE:
+        smote_error_text = 'None. All went well.'
+        smh = create_SMOTE_handler(n_jobs=n_jobs)
+        smote_params = str(smh.get_params())
+        smote_out_file = out_path + 'smote_progress.txt'
+        f = open(smote_out_file, 'w')
+
+        print('Starting SMOTE. ' + gct())
+        try:
+            n_samples, n_x, n_y, n_z = X.shape
+            X_smote = X.reshape(n_samples, n_x * n_y * n_z)
+            y_smote = y.reshape(y.shape[0])
+
+            f.write('Starting time: ' + gct() + '\n')
+            f.write('Params: ' + str(smote_params) + '\n')
+            f.write('X shape: ' + str(X.shape) + '\n')
+            f.write('y shape: ' + str(y.shape) + '\n')
+            f.write('Read class 0 count: '+str(np.count_nonzero(y==0))+'\n')
+            f.write('Read class 1 count: '+str(np.count_nonzero(y==1))+'\n')
+            f.write('Read samples: ' + str(n_samples) + '\n\n')
+
+            X_smote, y_smote = smh.fit_sample(X_smote, y_smote)
+            new_samples = X_smote.shape[0]
+
+            f.write('Finished time: ' + gct() + '\n')
+            f.write('X_smote shape: ' + str(X_smote.shape) + '\n')
+            f.write('y_smote shape: ' + str(y_smote.shape) + '\n')
+            f.write('New class 0 count: '+str(np.count_nonzero(y_smote==0))+'\n')
+            f.write('New class 1 count: '+str(np.count_nonzero(y_smote==1))+'\n')
+            f.write("New samples: " + str(new_samples) + '\n\n')
+
+            X_smote = X_smote.reshape(new_samples, n_x, n_y, n_z)
+            y_smote = y_smote.reshape(new_samples, 1)
+
+            f.write('X_smote shape [reshaped]: ' + str(X_smote.shape) + '\n')
+            f.write('y_smote shape [reshaped]: ' + str(y_smote.shape) + '\n')
+        except Exception as e:
+            # TODO display stacktrace
+            smote_error_text = str(e)
+            print('ERROR WHILE SMOTE!! (Reverting to un-smote)')
+            print(smote_error_text)
+            X_smote = X
+            y_smote = y
+            n_samples = 'NaN'
+            new_samples = 'NaN'
+
+            f.write('\nError! -> ' + smote_error_text)
+
+        f.close()
+        X = X_smote
+        y = y_smote
+        del X_smote
+        del y_smote
+
+        print(
+            'Finished smote. Old sample size: ' + str(n_samples) + '. New Samples: ' + str(new_samples) + '. ' + gct())
+        print("Finished SMOTE. New data has shape: ")
+        print("X-shape: " + str(X.shape))
+        print("y-shape: " + str(y.shape))
+
+        del n_samples
+        del new_samples
+
     if data_gen is not None:
         print("Fitting X to the data-gen.")
         data_gen.fit(X)
@@ -604,7 +705,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
 
     # VALIDATION DATA
     #################
-    print("Validation data size: " + str(len(validation_path_list)))
+    print("Loading validation data. Source folder count: " + str(len(validation_path_list)))
     X_val, y_val = multiple_hdf5_loader(validation_path_list, gp_current=global_progress_current,
                                         gp_max=global_progress_max,
                                         normalize_enum=normalize_enum)
@@ -665,7 +766,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     f.close()
 
     # plot_model(model, to_file=outPathCurrent + label + '_model.png', show_shapes=True, show_layer_names=True)
-    f = open(out_path + 'model.txt', 'w+')
+    f = open(out_path + 'model_training.txt', 'w+')
     data_gen_description = 'None.'
     if data_gen is not None:
         data_gen_description = 'Used: ' + str(data_gen)
@@ -689,6 +790,15 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     f.write('Model optimizer: ' + str(optimizer) + '\n')
     f.write('Model metrics raw: ' + str(metrics) + '\n')
     f.write('Data Generator used: ' + data_gen_description + '\n')
+    f.write('SMOTE Parameters: ' + str(smote_params) + '\n')
+    f.write('SMOTE Error: ' + smote_error_text + '\n')
+
+    f.write('\n == DATA: ==\n')
+    f.write("X shape: " + str(X.shape) + '\n')
+    f.write("y shape: " + str(y.shape) + '\n')
+    f.write("X_val shape: " + str(X_val.shape) + '\n')
+    f.write("y_val shape: " + str(y_val.shape) + '\n')
+
     f.close()
 
     f = open(out_path + 'model.json', 'w+')
@@ -734,26 +844,32 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     learn_rate_reduction_patience = 60
     learn_rate_factor = 0.5
     es_patience = int(float(learn_rate_reduction_patience) * 2.1337)
-    print('Learn rate reduction by factor '+str(learn_rate_factor)+' if improvement within '+str(learn_rate_reduction_patience)+' epochs.')
-    print('Early stopping patience: '+str(es_patience))
+    print('Learn rate reduction by factor ' + str(learn_rate_factor) + ' if improvement within ' + str(
+        learn_rate_reduction_patience) + ' epochs.')
+    print('Early stopping patience: ' + str(es_patience))
 
     weights_best_filename = out_path + 'weights_best.h5'
     model_checkpoint = ModelCheckpoint(checkpoint_out_path + 'weights_ep{epoch:08d}.h5', verbose=1,
                                        save_weights_only=True, period=50)
     model_checkpoint_best = ModelCheckpoint(weights_best_filename, monitor='val_loss', verbose=1, save_best_only=True,
                                             mode='min')
-    lrCallBack = ReduceLROnPlateau(monitor='val_loss', factor=learn_rate_factor, patience=learn_rate_reduction_patience, verbose=1,
+    lrCallBack = ReduceLROnPlateau(monitor='val_loss', factor=learn_rate_factor, patience=learn_rate_reduction_patience,
+                                   verbose=1,
                                    mode='auto', min_delta=0.000001, cooldown=0, min_lr=0.000001)
     csv_logger = CSVLogger(log_out_path, separator=';', append=True)
     early_stop_callback = EarlyStopping(monitor='val_loss', patience=es_patience, verbose=1, mode='auto', baseline=None,
-                                        restore_best_weights=True) # early stopping
+                                        restore_best_weights=True)  # early stopping
+    canary_interrupt_callback = CanaryInterruptCallback(path=out_path)
+    live_plot_callback = PlotTrainingLiveCallback(out_path=out_path, gpu_index_string=gpu_index_string)
 
     callbacks_list = [model_checkpoint,
                       model_checkpoint_best,
                       lrCallBack,
                       csv_logger,
                       early_stop_callback,
-                      PlotTrainingLiveCallback(out_path=out_path, gpu_index_string=gpu_index_string)]
+                      canary_interrupt_callback,
+                      live_plot_callback
+                      ]
 
     # TRAINING
     ##########
@@ -970,8 +1086,9 @@ def main():
     out_path_oligo_debug = out_path_base + 'oligo_debug' + os.sep
 
     oligo_mode = False
-    neuron_mode = True
-    debug_mode = False
+    neuron_mode = False
+    debug_mode = True
+    n_jobs = 9,
 
     print('Sleeping....')
     # time.sleep(18000)
@@ -982,28 +1099,24 @@ def main():
             validation_path_list=debug_oligos_validation,
             test_data_path=test_data_path_oligo,
             # data_gen=data_gen,
-            #out_path=out_path_oligo_debug,
-            out_path=out_path + 'paper-debug-imaging2' + os.sep + 'oligo' + os.sep,
-            gpu_index_string="0",
+            # out_path=out_path_oligo_debug,
+            out_path=out_path + 'paper-debug-smote' + os.sep + 'oligo-debug' + os.sep,
+            use_SMOTE=True,
+            n_jobs=19,
+            gpu_index_string="2",
             epochs=5
         )
 
     if oligo_mode:
-        #train_model(
-        #    training_path_list=final_oligos_validated,
-        #    validation_path_list=final_oligos_validated_validation_set,
-        #    test_data_path=test_data_path_oligo,
-        #    # data_gen=data_gen,
-        #    out_path=out_path + 'paper-final_no-datagen' + os.sep + 'oligo' + os.sep,
-        #    gpu_index_string="0"
-        #)
         train_model(
             training_path_list=final_oligos_validated,
             validation_path_list=final_oligos_validated_validation_set,
             test_data_path=test_data_path_oligo,
-            data_gen=data_gen,
-            out_path=out_path + 'paper-final_datagen' + os.sep + 'oligo' + os.sep,
-            gpu_index_string="0"
+            # data_gen=data_gen,
+            use_SMOTE=True,
+            out_path=out_path + 'paper-final_smote_no-datagen' + os.sep + 'oligo' + os.sep,
+            gpu_index_string="0",
+            epochs=2500
         )
 
     if neuron_mode:
@@ -1012,16 +1125,11 @@ def main():
             validation_path_list=final_neurons_validated_validation_set,
             test_data_path=test_data_path_neuron,
             # data_gen=data_gen,
-            out_path=out_path + 'paper-final_no-datagen' + os.sep + 'neuron' + os.sep,
-            gpu_index_string="1"
-        )
-        train_model(
-            training_path_list=final_neurons_validated,
-            validation_path_list=final_neurons_validated_validation_set,
-            test_data_path=test_data_path_neuron,
-            data_gen=data_gen,
-            out_path=out_path + 'paper-final_datagen' + os.sep + 'neuron' + os.sep,
-            gpu_index_string="1"
+            use_SMOTE=True,
+            out_path=out_path + 'paper-final_smote_no-datagen' + os.sep + 'neuron' + os.sep,
+            n_jobs=n_jobs,
+            gpu_index_string="1",
+            epochs=2500
         )
 
     # out_path_oligo = out_path+'oligo'+os.sep

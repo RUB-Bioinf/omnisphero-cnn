@@ -35,7 +35,7 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
     # TESTING
     fig_path = model_path + os.sep + label
     if include_date:
-        fig_path = fig_path + datetime.now().strftime("%Y_%m_%d")
+        fig_path = fig_path + '-' + datetime.now().strftime("%Y_%m_%d")
     fig_path = fig_path + os.sep
 
     os.makedirs(fig_path, exist_ok=True)

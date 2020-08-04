@@ -314,7 +314,8 @@ class CanaryInterruptCallback(Callback):
 
     def __init__(self, path: str, starts_active: bool = True, label: str = None):
         self.active: bool = starts_active
-        self.label = label
+        self.label: str = label
+        self.shutdown_source: bool = False
         os.makedirs(path, exist_ok=True)
 
         self.__canary_file = path + os.sep + 'canary_interrupt.txt'
@@ -325,7 +326,7 @@ class CanaryInterruptCallback(Callback):
         f.write(
             'Canary interrupt for CNN training started at ' + gct() + '.\nDelete this file to safely stop your training.')
         if label is not None:
-            f.write('\nLabel: ' + str(label))
+            f.write('\nLabel: ' + str(label).strip())
         f.write('\n\nCreated by Nils Förster.')
         f.close()
 
@@ -335,6 +336,7 @@ class CanaryInterruptCallback(Callback):
         if self.active:
             if not os.path.exists(self.__canary_file):
                 print('Canary file not found! Shutting down training!')
+                self.shutdown_source = True
                 self.model.stop_training = True
 
     def on_train_end(self, logs={}):
@@ -595,12 +597,15 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     os.makedirs(out_path, exist_ok=True)
 
     augment_path = out_path + 'augments' + os.sep
+    augment_smote_path = augment_path + 'smote' + os.sep
     fig_path = out_path + 'fig' + os.sep
     fig_path_model = fig_path + 'model' + os.sep
+
     os.makedirs(out_path, exist_ok=True)
     os.makedirs(augment_path, exist_ok=True)
     os.makedirs(fig_path, exist_ok=True)
     os.makedirs(fig_path_model, exist_ok=True)
+    os.makedirs(augment_smote_path, exist_ok=True)
 
     # Logging the directories used for training
     f = open(out_path + 'training_data_used.txt', 'w+')
@@ -633,18 +638,19 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     print("X-shape (corrected): " + str(X.shape))
 
     print('SMOTE mode: ' + str(use_SMOTE))
+    n_samples, n_x, n_y, n_z = X.shape
+    k_neighbors = max(int(n_samples / 1000), 150)
     smote_params: str = 'No SMOTE used'
     smote_error_text = 'N/A.'
     if use_SMOTE:
         smote_error_text = 'None. All went well.'
-        smh = create_SMOTE_handler(n_jobs=n_jobs)
+        smh = create_SMOTE_handler(n_jobs=n_jobs, k_neighbors=k_neighbors)
         smote_params = str(smh.get_params())
         smote_out_file = out_path + 'smote_progress.txt'
         f = open(smote_out_file, 'w')
 
-        print('Starting SMOTE. ' + gct())
+        print('Starting SMOTE. Threads: ' + str(n_jobs) + '. ' + gct())
         try:
-            n_samples, n_x, n_y, n_z = X.shape
             X_smote = X.reshape(n_samples, n_x * n_y * n_z)
             y_smote = y.reshape(y.shape[0])
 
@@ -652,8 +658,8 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
             f.write('Params: ' + str(smote_params) + '\n')
             f.write('X shape: ' + str(X.shape) + '\n')
             f.write('y shape: ' + str(y.shape) + '\n')
-            f.write('Read class 0 count: '+str(np.count_nonzero(y==0))+'\n')
-            f.write('Read class 1 count: '+str(np.count_nonzero(y==1))+'\n')
+            f.write('Read class 0 count: ' + str(np.count_nonzero(y == 0)) + '\n')
+            f.write('Read class 1 count: ' + str(np.count_nonzero(y == 1)) + '\n')
             f.write('Read samples: ' + str(n_samples) + '\n\n')
 
             X_smote, y_smote = smh.fit_sample(X_smote, y_smote)
@@ -662,8 +668,8 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
             f.write('Finished time: ' + gct() + '\n')
             f.write('X_smote shape: ' + str(X_smote.shape) + '\n')
             f.write('y_smote shape: ' + str(y_smote.shape) + '\n')
-            f.write('New class 0 count: '+str(np.count_nonzero(y_smote==0))+'\n')
-            f.write('New class 1 count: '+str(np.count_nonzero(y_smote==1))+'\n')
+            f.write('New class 0 count: ' + str(np.count_nonzero(y_smote == 0)) + '\n')
+            f.write('New class 1 count: ' + str(np.count_nonzero(y_smote == 1)) + '\n')
             f.write("New samples: " + str(new_samples) + '\n\n')
 
             X_smote = X_smote.reshape(new_samples, n_x, n_y, n_z)
@@ -673,17 +679,27 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
             f.write('y_smote shape [reshaped]: ' + str(y_smote.shape) + '\n')
         except Exception as e:
             # TODO display stacktrace
-            smote_error_text = str(e)
+            smote_error_text = str(e.__class__.__name__) + ': "' + str(e) + '"'
             print('ERROR WHILE SMOTE!! (Reverting to un-smote)')
             print(smote_error_text)
             X_smote = X
             y_smote = y
-            n_samples = 'NaN'
-            new_samples = 'NaN'
+            n_samples = np.nan
+            new_samples = np.nan
+            f.write('\nError! -> ' + smote_error_text)
 
+        try:
+            save_smote_samples(X_smote, y_smote, n_samples, new_samples, augment_smote_path,
+                               out_samples=k_neighbors + 5)
+        except Exception as e:
+            # TODO display stacktrace
+            print('Failed to save smote samples!')
+            print(str(e))
+            smote_error_text = smote_error_text + '\nSmote sample error: ' + str(e)
             f.write('\nError! -> ' + smote_error_text)
 
         f.close()
+
         X = X_smote
         y = y_smote
         del X_smote
@@ -841,7 +857,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
 
     # CALLBACKS
     ###########
-    learn_rate_reduction_patience = 60
+    learn_rate_reduction_patience = 110
     learn_rate_factor = 0.5
     es_patience = int(float(learn_rate_reduction_patience) * 2.1337)
     print('Learn rate reduction by factor ' + str(learn_rate_factor) + ' if improvement within ' + str(
@@ -866,7 +882,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
                       model_checkpoint_best,
                       lrCallBack,
                       csv_logger,
-                      early_stop_callback,
+                      # early_stop_callback,
                       canary_interrupt_callback,
                       live_plot_callback
                       ]
@@ -951,6 +967,38 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     print('Training done.')
     print('Timestamp: ', gct())
     print('Your results here: ' + out_path)
+
+
+def save_smote_samples(X_smote, y_smote, n_samples, new_samples, augment_smote_path, out_samples: int = 5):
+    print('Saving smote samples: ' + augment_smote_path)
+    smote_indexes = list(range(out_samples))
+    smote_indexes.extend(range(n_samples - out_samples, n_samples + out_samples))
+    smote_indexes.extend(range(new_samples - out_samples * 2, new_samples))
+
+    class1_indices = np.where(y_smote == 1)[0]
+
+    for i in range(len(smote_indexes)):
+        current_index = smote_indexes[i]
+        current_img = X_smote[current_index]
+
+        current_img_path = augment_smote_path + 'smote_' + str(i) + '_' + str(y_smote[current_index][0]) + '.png'
+        plt.imsave(current_img_path, current_img)
+
+    out_image_bounds = int((math.sqrt(out_samples) + 1) * 2.1337)
+    combined_sample_count = out_image_bounds * out_image_bounds
+    combined_img = np.zeros((out_image_bounds * 64, out_image_bounds * 64, 3), dtype='uint8')
+    y = -1
+    x = -1
+    for i in range(new_samples - combined_sample_count, new_samples):
+        x = (x + 1) % out_image_bounds
+        if x == 0:
+            y = y + 1
+        print(x)
+        print(y)
+        current_img = (X_smote[i] * 255).astype(np.uint8)
+        combined_img[x * 64:x * 64 + 64, y * 64:y * 64 + 64] = current_img
+    plt.imsave(augment_smote_path + 'smote_last_' + str(out_image_bounds) + 'x' + str(out_image_bounds) + '.png',
+               combined_img)
 
 
 def get_default_augmenter() -> ImageDataGenerator:
@@ -1085,10 +1133,10 @@ def main():
 
     out_path_oligo_debug = out_path_base + 'oligo_debug' + os.sep
 
-    oligo_mode = False
+    oligo_mode = True
     neuron_mode = False
-    debug_mode = True
-    n_jobs = 9,
+    debug_mode = False
+    n_jobs = 1
 
     print('Sleeping....')
     # time.sleep(18000)
@@ -1115,6 +1163,7 @@ def main():
             # data_gen=data_gen,
             use_SMOTE=True,
             out_path=out_path + 'paper-final_smote_no-datagen' + os.sep + 'oligo' + os.sep,
+            n_jobs=n_jobs,
             gpu_index_string="0",
             epochs=2500
         )

@@ -276,10 +276,10 @@ def check_predicted_classes(labels, predictions):
 # kind: Any = 'regular',
 # svm_estimator: Any = None,
 # n_jobs: Any = 1
-def create_SMOTE_handler(random_state: int = None, n_jobs: int = 1) -> SMOTE:
+def create_SMOTE_handler(random_state: int = None, n_jobs: int = 1,k_neighbors:int=5) -> SMOTE:
     if random_state is None:
         random_state = int(time.time())
-    sm = SMOTE(random_state=random_state, n_jobs=n_jobs)
+    sm = SMOTE(random_state=random_state, n_jobs=n_jobs,k_neighbors=k_neighbors)
     return sm
 
 

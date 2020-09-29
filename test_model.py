@@ -1,12 +1,12 @@
 # IMPORTS
 #########
-
 import sys
+from datetime import datetime
 
-import matplotlib.pyplot as plt
 from keras.models import load_model
 from sklearn.metrics import *
 
+import misc_cnn
 import misc_omnisphero as misc
 from misc_omnisphero import *
 
@@ -16,12 +16,15 @@ cuda_devices = "0"
 # OLD DATA
 # model_path = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/results/oligo_final_sigmodal/0_custom/'
 # test_data_path = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/oligo/EKB25_trainingData_oligo/'
-#test_data_path = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/neuron/EKB25_trainingData_neuron/'
+# test_data_path = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/neuron/EKB25_trainingData_neuron/'
 
 # KONTROLLIERT DATA
-#model_path = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/debug-kontrolliert-weighted/neuron-n4-ep1500/0_custom/'
+# model_path = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/debug-kontrolliert-weighted/neuron-n4-ep1500/0_custom/'
 test_data_path_oligo = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_test/'
 test_data_path_neuron = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_test/'
+
+test_data_path_oligo_debug = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_test_debug/'
+test_data_path_neuron_debug = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_test_debug/'
 
 normalize_enum = 4
 img_dpi = 450
@@ -41,7 +44,7 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
     os.makedirs(fig_path, exist_ok=True)
 
     print('Loading model & weights')
-    print('Model path: '+model_path)
+    print('Model path: ' + model_path)
     if os.path.exists(model_path + 'custom.h5'):
         model = load_model(model_path + 'custom.h5')
         model.load_weights(model_path + 'custom_weights_best.h5')
@@ -50,7 +53,7 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
         model.load_weights(model_path + 'weights_best.h5')
     print('Finished loading model.')
 
-    print('Loading test data: '+test_data_path)
+    print('Loading test data: ' + test_data_path)
     y_test = np.empty((0, 1))
     X_test, y_test = misc.hdf5_loader(test_data_path, gp_current=1, gp_max=1, normalize_enum=normalize_enum)
     print('Finished loading test data.')
@@ -67,6 +70,20 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
     print("Loaded test data has shape: ")
     print(X_test.shape)
     print(y_test.shape)
+
+    # Printing test data:
+    test_out_file = fig_path + 'test_data.txt'
+    try:
+        f = open(test_out_file, 'w')
+        f.write('Data Source Path: '+test_data_path+'\n\n')
+
+        f.write('X_test shape: ' + str(X_test.shape) + '\n')
+        f.write('y_test shape: ' + str(y_test.shape) + '\n')
+        f.write('Read class 0 count: ' + str(np.count_nonzero(y_test == 0)) + '\n')
+        f.write('Read class 1 count: ' + str(np.count_nonzero(y_test == 1)) + '\n')
+        f.close()
+    except Exception as e:
+        pass
 
     try:
         # Preditcing Test Data
@@ -89,6 +106,14 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
         plt.savefig(fig_path + 'pr.svg', dpi=img_dpi, transparent=True)
         plt.clf()
 
+        f = open(fig_path + 'pr.tex', 'w')
+        f.write(misc_cnn.get_plt_as_tex(data_list_x=[lr_recall], data_list_y=[lr_precision],
+                                        title='Precision Recall Curve', label_y='True positive rate',
+                                        label_x='False Positive Rate',
+                                        plot_titles=['PR (Area = {:.3f})'.format(lr_auc)],
+                                        plot_colors=['blue'], legend_pos='south west'))
+        f.close()
+
         # Raw PR data
         print('Saving raw PR data')
         f = open(fig_path + "pr_data_raw.csv", 'w+')
@@ -101,6 +126,10 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
 
         # ROC CURVE
         print('Calculating roc curve.')
+
+        # ROC stuff info:
+        # Source: https://stackoverflow.com/questions/41032551/how-to-compute-receiving-operating-characteristic-roc-and-auc-in-keras
+
         fpr_roc, tpr_roc, thresholds_roc = roc_curve(y_test, y_pred_roc)
 
         print('Calculating AUC.')
@@ -118,8 +147,14 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
         plt.savefig(fig_path + 'roc.svg', dpi=img_dpi, transparent=True)
         plt.clf()
 
+        f = open(fig_path + 'roc.tex', 'w')
+        f.write(misc_cnn.get_plt_as_tex(data_list_x=[fpr_roc], data_list_y=[tpr_roc], title='ROC Curve',
+                                        label_y='True positive rate', label_x='False Positive Rate',
+                                        plot_colors=['blue']))
+        f.close()
+
         # Raw ROC data
-        print('Saving raw ROC data: '+fig_path)
+        print('Saving raw ROC data: ' + fig_path)
         f = open(fig_path + "roc_data_raw.csv", 'w+')
         f.write('i;FPR;TPR;Thresholds\n')
         for i in range(len(thresholds_roc)):
@@ -210,9 +245,10 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
         # Printing the exception message to file.
         print("Failed to calculate roc curve for: " + label + ".")
         f = open(fig_path + "rocError.txt", 'w+')
-        f.write(str(e))
 
         try:
+            f.write(str(e)+'\n')
+
             # Printing the stack trace to the file
             exc_info = sys.exc_info()
             f.write('\n')
@@ -228,19 +264,22 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
 def main():
     oligo_mode = True
     neuron_mode = True
+    debug_mode = False
 
     o1 = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/training/debug/paper-final_datagen/oligo-old/'
     n1 = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/training/debug/paper-final_datagen/neuron/'
+    db = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/training/debug/paper-debug-smote/oligo-debug/'
 
     print("Running CNN test.")
     if oligo_mode:
-        #test_cnn(o1, test_data_path_oligo, normalize_enum, img_dpi, cuda_devices, True, label='cnn-test')
-        test_cnn(o1, test_data_path_oligo, normalize_enum, img_dpi, cuda_devices, True, label='cnn-test')
+        # test_cnn(o1, test_data_path_oligo, normalize_enum, img_dpi, cuda_devices, True, label='cnn-test')
+        test_cnn(o1, test_data_path_oligo, normalize_enum, img_dpi, cuda_devices="0", True, label='cnn-debug-test')
         pass
     if neuron_mode:
-        #test_cnn(n1, test_data_path_neuron, normalize_enum, img_dpi, cuda_devices, True, label='cnn-test')
-        #test_cnn(n2, test_data_path_neuron, normalize_enum, img_dpi, cuda_devices, True, label='cnn-test')
+        test_cnn(n1, test_data_path_neuron, normalize_enum, img_dpi, cuda_devices="0", True, label='cnn-debug-test')
         pass
+    if debug_mode:
+        test_cnn(db, test_data_path_oligo_debug, normalize_enum, img_dpi, cuda_devices="0", True, label='cnn-debug-test')
 
     print('Testing done.')
 

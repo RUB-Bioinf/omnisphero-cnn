@@ -10,37 +10,24 @@ Joshua Butke
 #########
 import math
 import sys
-import time
 
-import socket
-import keras.backend as K
-import matplotlib.pyplot as plt
-import tensorflow as tf
-import keras.backend.tensorflow_backend
 from keras.backend import tensorflow_backend
-from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, Callback, CSVLogger, EarlyStopping
-from keras.layers import Dense
-from keras.layers import Input, Conv2D, MaxPooling2D, Flatten, Dropout, BatchNormalization
+from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, CSVLogger, EarlyStopping
 from keras.models import Model
 from keras.optimizers import SGD
 from keras.utils import multi_gpu_model
 from keras_preprocessing.image import ImageDataGenerator
+from sklearn.model_selection import train_test_split
 from sklearn.utils.class_weight import compute_class_weight
-from keras.backend.tensorflow_backend import set_session
 
 # Custom Imports
+import misc_cnn
+import models
 from misc_omnisphero import *
 from scramblePaths import *
 from test_model import test_cnn
 
-# Keras session
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True  # dynamically grow the memory used on the GPU
-config.log_device_placement = True  # to log device placement (on which device the operation ran)
-sess = tf.Session(config=config)
-tensorflow_backend.set_session(sess)  # set this TensorFlow session as the default session for Keras
-# Code snipit credit: https://kobkrit.com/using-allow-growth-memory-option-in-tensorflow-and-keras-dc8c8081bc96
-
+p_allow_growth: bool = False
 gpu_index_string = "0"
 # gpuIndexString = "0,1,2"
 
@@ -129,19 +116,33 @@ final_neurons = [
 final_neurons_validated_validation_set = [
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_val/']
 
+final_neurons_validated_validation_set_reorder = [
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_val_reorder/']
+
 final_neurons_validated = [
-    # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/combinedVal_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/EKB5_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/ELS470_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/ELS79_BIS-I_NPC2-5_062_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/ELS81_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/ESM49_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/ESM9_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/FJK125_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/FJK130_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/JK122_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/JK242_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert/MP149_trainingData_neuron/'
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train/EKB5_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train/ELS470_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train/ELS79_BIS-I_NPC2-5_062_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train/ELS81_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train/ESM49_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train/ESM9_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train/FJK125_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train/FJK130_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train/JK122_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train/JK242_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train/MP149_trainingData_neuron/'
+]
+
+final_neurons_validated_reorder = [
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_reorder/EKB5_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_reorder/ELS470_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_reorder/ELS79_BIS-I_NPC2-5_062_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_reorder/ELS81_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_reorder/ESM49_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_reorder/ESM9_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_reorder/FJK125_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_reorder/JK242_trainingData_neuron/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_reorder/MP149_trainingData_neuron/'
 ]
 
 final_neurons_adjusted_only = [
@@ -181,24 +182,42 @@ final_oligos = [
 final_oligos_validated_validation_set = [
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_val/']
 
+final_oligos_validated_validation_set_reorder = [
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_val_reorder/']
+
 final_oligos_validated = [
-    # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/combinedVal_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/EKB5_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/ELS470_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/ELS79_BIS-I_NPC2-5_062_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/ESM10_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/ESM49_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/ESM9_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/JK122_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/JK153_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/JK155_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/JK156_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/JK242_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/JK95_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/MP149_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/MP66_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/MP67_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert/MP70_trainingData_oligo/'
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/EKB5_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/ELS470_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/ELS79_BIS-I_NPC2-5_062_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/ESM10_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/ESM49_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/ESM9_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/JK122_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/JK153_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/JK155_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/JK156_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/JK242_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/JK95_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/MP149_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/MP66_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/MP67_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/MP70_trainingData_oligo/'
+]
+
+final_oligos_validated_reorder = [
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/EKB5_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/ELS79_BIS-I_NPC2-5_062_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/ESM10_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/ESM49_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/ESM9_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/JK153_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/JK155_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/JK156_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/JK242_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/JK95_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/MP149_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/MP66_trainingData_oligo/',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/MP70_trainingData_oligo/'
 ]
 
 final_oligos_adjusted_only = [
@@ -228,254 +247,6 @@ debug_oligos = [
 debug_oligos_validation = [
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_debug_val/'
 ]
-
-
-# CNN MODELS
-############
-def omnisphero_CNN(n_classes, input_height, input_width, input_depth, data_format):
-    """prototype model for single class decision
-    """
-    # Input
-    img_input = Input(shape=(input_height, input_width, input_depth), name='input_layer')
-
-    # Convolution Blocks (FEATURE EXTRACTION)
-
-    # Conv Block 1
-    c1 = Conv2D(32, (3, 3), kernel_initializer='he_uniform', activation='relu', padding='same', name='block1_conv1',
-                data_format=data_format)(img_input)
-    bn1 = BatchNormalization(name='batch_norm_1')(c1)
-    c2 = Conv2D(32, (3, 3), kernel_initializer='he_uniform', activation='relu', padding='same', name='block1_conv2',
-                data_format=data_format)(bn1)
-    bn2 = BatchNormalization(name='batch_norm_2')(c2)
-    p1 = MaxPooling2D((2, 2), name='block1_pooling', data_format=data_format)(bn2)
-    block1 = p1
-
-    # Dave's Idee:
-    # #Conv Block 1
-    # c1 = Conv2D(32, (3,3), padding='same', name='block1_conv1', data_format=data_format)(img_input)
-    # bn1 = BatchNormalization(name='batch_norm_1')(c1)
-    # act1 = Activation('relu', alpha=0.0, max_value=None, threshold=0.0)(bn1)
-    # 
-    # c2 = Conv2D(32, (3,3), activation='relu', padding='same', name='block1_conv2', data_format=data_format)(act1)
-    # bn2 = BatchNormalization(name='batch_norm_2')(c2)
-    # p1 = MaxPooling2D((2,2), name='block1_pooling', data_format=data_format)(bn2)
-    # block1 = p1
-
-    # Conv Block 2
-    c3 = Conv2D(64, (3, 3), kernel_initializer='he_uniform', activation='relu', padding='same', name='block2_conv1',
-                data_format=data_format)(block1)
-    bn3 = BatchNormalization(name='batch_norm_3')(c3)
-    c4 = Conv2D(64, (3, 3), kernel_initializer='he_uniform', activation='relu', padding='same', name='block2_conv2',
-                data_format=data_format)(bn3)
-    bn4 = BatchNormalization(name='batch_norm_4')(c4)
-    p2 = MaxPooling2D((2, 2), name='block2_pooling', data_format='channels_last')(bn4)
-    block2 = p2
-
-    # Conv Block 3
-    c5 = Conv2D(128, (3, 3), kernel_initializer='he_uniform', activation='relu', padding='same', name='block3_conv1',
-                data_format=data_format)(block2)
-    bn5 = BatchNormalization(name='batch_norm_5')(c5)
-    c6 = Conv2D(128, (3, 3), kernel_initializer='he_uniform', activation='relu', padding='same', name='block3_conv2',
-                data_format=data_format)(bn5)
-    bn6 = BatchNormalization(name='batch_norm_6')(c6)
-    p3 = MaxPooling2D((2, 2), name='block3_pooling', data_format='channels_last')(bn6)
-    block3 = p3
-
-    # Conv Block 4
-    c7 = Conv2D(256, (3, 3), kernel_initializer='he_uniform', activation='relu', padding='same', name='block4_conv1',
-                data_format=data_format)(block3)
-    bn7 = BatchNormalization(name='batch_norm_7')(c7)
-    c8 = Conv2D(256, (3, 3), kernel_initializer='he_uniform', activation='relu', padding='same', name='block4_conv2',
-                data_format=data_format)(bn7)
-    bn8 = BatchNormalization(name='batch_norm_8')(c8)
-    p4 = MaxPooling2D((2, 2), name='block4_pooling', data_format='channels_last')(bn8)
-    block4 = p4
-
-    # Fully-Connected Block (CLASSIFICATION)
-    flat = Flatten(name='flatten')(block3)
-    fc1 = Dense(256, kernel_initializer='he_uniform', activation='relu', name='fully_connected1')(flat)
-    drop_fc_1 = Dropout(0.5)(fc1)
-
-    if n_classes == 1:
-        prediction = Dense(n_classes, activation='sigmoid', name='output_layer')(drop_fc_1)
-    else:
-        prediction = Dense(n_classes, activation='softmax')(drop_fc_1)
-
-    # Construction
-    model = Model(inputs=img_input, outputs=prediction)
-    return model
-
-
-# ROC stuff
-# Source: https://stackoverflow.com/questions/41032551/how-to-compute-receiving-operating-characteristic-roc-and-auc-in-keras
-
-# Custom Callback: Canary Interrupt
-class CanaryInterruptCallback(Callback):
-
-    def __init__(self, path: str, starts_active: bool = True, label: str = None):
-        self.active: bool = starts_active
-        self.label: str = label
-        self.shutdown_source: bool = False
-        os.makedirs(path, exist_ok=True)
-
-        self.__canary_file = path + os.sep + 'canary_interrupt.txt'
-        if os.path.exists(self.__canary_file):
-            os.remove(self.__canary_file)
-
-        f = open(self.__canary_file, 'w')
-        f.write(
-            'Canary interrupt for CNN training started at ' + gct() + '.\nDelete this file to safely stop your training.')
-        if label is not None:
-            f.write('\nLabel: ' + str(label).strip())
-        f.write('\n\nCreated by Nils Förster.')
-        f.close()
-
-        print('Placed canary file here:' + str(self.__canary_file))
-
-    def on_epoch_end(self, epoch, logs={}):
-        if self.active:
-            if not os.path.exists(self.__canary_file):
-                print('Canary file not found! Shutting down training!')
-                self.shutdown_source = True
-                self.model.stop_training = True
-
-    def on_train_end(self, logs={}):
-        if os.path.exists(self.__canary_file):
-            os.remove(self.__canary_file)
-
-
-# Custom callback: Live Plotting
-class PlotTrainingLiveCallback(Callback):
-    # packages required: os, socket, matplotlib as plt
-
-    def __init__(self, out_path, gpu_index_string):
-        super().__init__()
-        self.gpu_index_string = gpu_index_string
-        self.file_name = out_path + 'training_custom_progress.csv'
-        if os.path.exists(self.file_name):
-            os.remove(self.file_name)
-
-        self.live_plot_dir = out_path + 'live_plot' + os.sep
-        os.makedirs(self.live_plot_dir, exist_ok=True)
-
-        self.epoch_start_timestamp = time.time()
-        self.epoch_duration_list = []
-        self.out_path = out_path
-        self.host_name = str(socket.gethostname())
-
-        self.epochCount = 0
-
-        self.history_list_loss = []
-        self.history_list_loss_val = []
-        self.history_list_acc = []
-        self.history_list_acc_val = []
-        self.history_list_lr = []
-
-    def on_train_begin(self, logs={}):
-        self.write_line('Training start;;' + gct() + '\n')
-        self.write_line('Epoch;Timestamp\n')
-
-    def on_train_end(self, logs={}):
-        self.write_line('Training finished;;' + gct())
-        self.plot_training_time()
-        self.plot_training_history_live()
-
-    def on_epoch_begin(self, epoch, logs={}):
-        self.epochCount = self.epochCount + 1
-        self.epoch_start_timestamp = time.time()
-        self.write_line()
-
-    def on_epoch_end(self, epoch, logs={}):
-        t = int(time.time() - self.epoch_start_timestamp)
-        self.epoch_duration_list.append(t)
-
-        self.history_list_loss.append(logs['loss'])
-        self.history_list_loss_val.append(logs['val_loss'])
-        self.history_list_acc.append(logs['acc'])
-        self.history_list_acc_val.append(logs['val_acc'])
-        self.history_list_lr.append(logs['lr'])
-
-        self.plot_training_time()
-        self.plot_training_history_live()
-
-    def on_batch_begin(self, batch, logs={}):
-        pass
-
-    def on_batch_end(self, batch, logs={}):
-        pass
-
-    def write_line(self, line=None):
-        try:
-            f = open(self.file_name, 'a')
-            if line is None:
-                line = str(self.epochCount) + ';' + gct()
-
-            f.write(line + '\n')
-            f.close()
-        except Exception as e:
-            # TODO print stacktrace
-            pass
-
-    def plot_training_time(self):
-        # Plotting epoch duration
-        try:
-            plt.plot(self.epoch_duration_list)
-            plt.title('Training on ' + self.host_name + ': ' + gct() + '. GPUS: [' + self.gpu_index_string + ']')
-            plt.ylabel('Duration (sec)')
-            plt.xlabel('Epoch')
-
-            plt.savefig(self.out_path + 'training_time.png', dpi=400)
-            plt.savefig(self.live_plot_dir + 'training_time_live.png', dpi=400)
-            plt.savefig(self.live_plot_dir + 'training_time_live.svg', dpi=400, transparent=True)
-            plt.savefig(self.live_plot_dir + 'training_time_live.pdf', dpi=400, transparent=True)
-            plt.clf()
-        except Exception as e:
-            # TODO print stacktrace
-            pass
-
-    def plot_training_history_live(self):
-        # Plotting epoch duration
-        try:
-            # Plot training & validation loss values
-            plt.plot(self.history_list_loss)
-            plt.plot(self.history_list_loss_val)
-            plt.title('Live: Model loss')
-            plt.ylabel('Loss')
-            plt.xlabel('Epoch')
-            plt.legend(['Train', 'Validation'], loc='best')
-
-            plt.savefig(self.live_plot_dir + 'loss_live.png', dpi=400)
-            plt.savefig(self.live_plot_dir + 'loss_live.pdf', dpi=400, transparent=True)
-            plt.savefig(self.live_plot_dir + 'loss_live.svg', dpi=400, transparent=True)
-            plt.clf()
-
-            # Plot accuracy loss values
-            plt.plot(self.history_list_acc)
-            plt.plot(self.history_list_acc_val)
-            plt.title('Live: Model accuracy')
-            plt.ylabel('Accuracy')
-            plt.xlabel('Epoch')
-            plt.legend(['Train', 'Validation'], loc='best')
-
-            plt.savefig(self.live_plot_dir + 'accuracy_live.png', dpi=400)
-            plt.savefig(self.live_plot_dir + 'accuracy_live.svg', dpi=400, transparent=True)
-            plt.savefig(self.live_plot_dir + 'accuracy_live.pdf', dpi=400, transparent=True)
-            plt.clf()
-
-            # Plot accuracy loss values
-            plt.plot(self.history_list_lr)
-            plt.title('Live: Model learn rate')
-            plt.ylabel('Accuracy')
-            plt.xlabel('Epoch')
-
-            plt.savefig(self.live_plot_dir + 'learn_rate_live.png', dpi=400)
-            plt.savefig(self.live_plot_dir + 'learn_rate_live.svg', dpi=400, transparent=True)
-            plt.savefig(self.live_plot_dir + 'learn_rate_live.pdf', dpi=400, transparent=True)
-            plt.clf()
-        except Exception as e:
-            # TODO print stacktrace
-            pass
-
 
 # Initiating dummy variables
 # X = 0
@@ -527,8 +298,9 @@ lossEnum = 'binary_crossentropy'
 
 # Optimizer name determines the optimizer used during fitting.
 # Possible entries:
-# 'adadelta', 'adam', 'SGD'
-optimizer = SGD(lr=learn_rate)
+# 'adadelta', 'adam', 'SGD(lr=learn_rate)'
+optimizer = 'SGD'
+allowed_optimizers = ['adam', 'adadelta', 'SGD']
 # TODO actually use this
 
 
@@ -536,7 +308,6 @@ optimizer = SGD(lr=learn_rate)
 # Possible entries:
 # 'mean_sqaure_error, 'accuracy'
 metrics = ['accuracy']
-# TODO actually use this
 
 # normalize_enum is an enum to determine normalisation as follows:
 # 0 = no normalisation
@@ -582,23 +353,71 @@ def train_model_scrambling(path_candidate_list: [str], out_path: str, test_data_
     print(gct())
 
 
-def train_model(training_path_list: [str], validation_path_list: [str], out_path: str,
-                test_data_path: str,
+def train_model(training_path_list: [str], validation_path_list: [str], out_path: str, test_data_path: str,
+                # Multi param
                 lossEnum: str = lossEnum, normalize_enum: int = normalize_enum, n_classes: int = n_classes,
-                input_height: int = input_height,
-                input_width: int = input_width, input_depth: int = input_depth, data_format: str = data_format,
-                batch_size: int = batch_size, learn_rate: int = learn_rate,
-                epochs: int = epochs, global_progress_current: int = 1, global_progress_max: int = 1,
-                gpu_index_string: str = gpu_index_string, img_dpi: int = img_dpi_default,
-                optimizer=optimizer, metrics=metrics, n_jobs: int = 1,
-                data_gen: ImageDataGenerator = None, label: str = None, use_SMOTE: bool = False):
+                batch_size: int = batch_size,
+                # Input data
+                input_height: int = input_height, input_width: int = input_width, input_depth: int = input_depth,
+                data_format: str = data_format, epochs: int = epochs,
+                # optimizer params
+                optimizer=optimizer, sgd_momentum: float = 0.9, sgd_nesterov: bool = False, metrics=metrics,
+                learn_rate: int = learn_rate,
+                # multi-threadding
+                n_jobs: int = 1, single_thread_loading: bool = False,
+                # data ugmentation
+                data_gen: ImageDataGenerator = None, use_SMOTE: bool = False,
+                # Training data split params
+                split_proportion: float = None, split_stratify: bool = False,
+                # misc params
+                gpu_index_string: str = gpu_index_string, p_allow_growth:bool=p_allow_growth,
+                img_dpi: int = img_dpi_default,
+                example_sample_count: int = 25,
+                label: str = None, global_progress_current: int = 1, global_progress_max: int = 1):
     # Creating specific out dirs
+
+    # Importing Tensorflow and setting the session & GPU Management
+    os.environ["CUDA_VISIBLE_DEVICES"]=gpu_index_string
+    gpu_indexes = list(gpu_index_string.replace(",", ""))
+    gpu_index_count = len(gpu_indexes)
+    print("Visible GPUs: '" + gpu_index_string + "'. Count: " + str(gpu_index_count))
+
+    # Important! Set GPU Index String before importing tensorflow!
+    import tensorflow as tf
+
+    # Keras session growth
+    if p_allow_growth:
+        print('CUDA GPU Mem Allocation Growth enabled!')
+    
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True  # dynamically grow the memory used on the GPU
+        config.log_device_placement = True  # to log device placement (on which device the operation ran)
+        sess = tf.Session(config=config)
+        tensorflow_backend.set_session(sess)  # set this TensorFlow session as the default session for Keras
+        # Code snipit credit: https://kobkrit.com/using-allow-growth-memory-option-in-tensorflow-and-keras-dc8c8081bc96
+    else:
+        print('CUDA GPU Mem Allocation Growth disabled! Hogging all the memory for myself!')
+
+
     print('Saving results here: ' + out_path)
     os.makedirs(out_path, exist_ok=True)
+
+    if str(optimizer) not in allowed_optimizers:
+        raise Exception('Cannot train model with given optimizer: "' + str(optimizer) + '"! Valid optimizers: ' + str(
+            allowed_optimizers))
+
+    has_lr_adjusting_optimizer = True
+    if optimizer == 'SGD':
+        has_lr_adjusting_optimizer = False
+        optimizer = SGD(lr=learn_rate, momentum=sgd_momentum, nesterov=sgd_nesterov)
+    else:
+        sgd_nesterov = 'N / A'
+        sgd_momentum = 'N / A'
 
     augment_path = out_path + 'augments' + os.sep
     augment_smote_path = augment_path + 'smote' + os.sep
     fig_path = out_path + 'fig' + os.sep
+    sample_path = fig_path + 'samples' + os.sep
     fig_path_model = fig_path + 'model' + os.sep
 
     os.makedirs(out_path, exist_ok=True)
@@ -606,6 +425,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     os.makedirs(fig_path, exist_ok=True)
     os.makedirs(fig_path_model, exist_ok=True)
     os.makedirs(augment_smote_path, exist_ok=True)
+    os.makedirs(sample_path, exist_ok=True)
 
     # Logging the directories used for training
     f = open(out_path + 'training_data_used.txt', 'w+')
@@ -622,8 +442,9 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     # TRAINING DATA
     ###############
     print("Loading training data. Folder count: " + str(len(training_path_list)))
-    X, y = multiple_hdf5_loader(training_path_list, gp_current=global_progress_current, gp_max=global_progress_max,
-                                normalize_enum=normalize_enum)  # load datasets
+    X, y, _ = multiple_hdf5_loader(training_path_list, gp_current=global_progress_current, gp_max=global_progress_max,
+                                   normalize_enum=normalize_enum, n_jobs=len(training_path_list),
+                                   single_thread_loading=single_thread_loading)  # load datasets
 
     # print(y.shape)
     if n_classes == 2:
@@ -637,12 +458,59 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     y = y.astype(np.int)
     print("X-shape (corrected): " + str(X.shape))
 
+    minority_count = min(np.count_nonzero(y == 1), np.count_nonzero(y == 0))
+    k_neighbors = int(min(max(int(minority_count / 25) + 1, 150), minority_count / 2))
+    print('Minority count for smote: ' + str(minority_count) + '. k_neighbour candidates: ' + str(
+        int(minority_count * 0.25)) + '. Actually: ' + str(k_neighbors))
+
     print('SMOTE mode: ' + str(use_SMOTE))
     n_samples, n_x, n_y, n_z = X.shape
-    k_neighbors = max(int(n_samples / 1000), 150)
+
+    # TRAIN TEST SPLIT
+    ###############
+    split_out_file = out_path + 'data_splitting.txt'
+    f = open(split_out_file, 'w')
+
+    y_split = None
+    X_split = None
+    if split_proportion is not None and split_proportion > 0.0:
+        print('Splitting traing / val data in ' + str(split_proportion) + '-ratio. Stratify: ' + str(split_stratify))
+        f.write('Splitting traing / val data in ' + str(split_proportion) + '-ratio. Stratify: ' + str(
+            split_stratify) + '\n')
+        param_strat = None
+        if split_stratify:
+            param_strat = y
+
+        print('Pre splitting shape:')
+        f.write("X-shape: " + str(X.shape) + '\n')
+        f.write("y-shape: " + str(y.shape) + '\n')
+        f.write('y==0 count: ' + str(np.count_nonzero(y == 0)) + '\n')
+        f.write('y==1 count: ' + str(np.count_nonzero(y == 1)) + '\n')
+
+        X, X_split, y, y_split = train_test_split(X, y, test_size=split_proportion, stratify=param_strat)
+        print('Finished splitting.')
+
+        f.write('Post splitting shape:\n')
+        f.write("X-shape: " + str(X.shape) + '\n')
+        f.write("y-shape: " + str(y.shape) + '\n')
+        f.write("X_split-shape: " + str(X_split.shape) + '\n')
+        f.write("y_split-shape: " + str(y_split.shape) + '\n')
+        f.write('Post splitting y==0 count: ' + str(np.count_nonzero(y == 0)) + '\n')
+        f.write('Post splitting y==1 count: ' + str(np.count_nonzero(y == 1)) + '\n')
+        f.write('Post splitting y_split==0 count: ' + str(np.count_nonzero(y_split == 0)) + '\n')
+        f.write('Post splitting y_split==1 count: ' + str(np.count_nonzero(y_split == 1)) + '\n')
+    else:
+        f.write('Not splitting.')
+    f.close()
+
+    # SMOTE DATA
+    ###############
     smote_params: str = 'No SMOTE used'
     smote_error_text = 'N/A.'
     if use_SMOTE:
+        # Smote for image classification: https://medium.com/swlh/how-to-use-smote-for-dealing-with-imbalanced-image-dataset-for-solving-classification-problems-3aba7d2b9cad
+        # TODO out-sorce this as an independent function?
+
         smote_error_text = 'None. All went well.'
         smh = create_SMOTE_handler(n_jobs=n_jobs, k_neighbors=k_neighbors)
         smote_params = str(smh.get_params())
@@ -714,6 +582,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
         del n_samples
         del new_samples
 
+    # Data Augmentation
     if data_gen is not None:
         print("Fitting X to the data-gen.")
         data_gen.fit(X)
@@ -722,9 +591,11 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     # VALIDATION DATA
     #################
     print("Loading validation data. Source folder count: " + str(len(validation_path_list)))
-    X_val, y_val = multiple_hdf5_loader(validation_path_list, gp_current=global_progress_current,
-                                        gp_max=global_progress_max,
-                                        normalize_enum=normalize_enum)
+    X_val, y_val, _ = multiple_hdf5_loader(validation_path_list, gp_current=global_progress_current,
+                                           gp_max=global_progress_max,
+                                           normalize_enum=normalize_enum,
+                                           single_thread_loading=single_thread_loading,
+                                           n_jobs=len(validation_path_list))
     print("Validation data shape: " + str(y_val.shape))
     if n_classes == 2:
         y_val = np.append(y_val, 1 - y_val, axis=1)
@@ -746,15 +617,39 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     print("X_val corrected shape: " + str(X_val.shape))
     print("y_val corrected shape: " + str(y_val.shape))
 
+    split_out_file_val = out_path + 'data_splitting_val.txt'
+    f = open(split_out_file_val, 'w')
+    if y_split is not None and X_split is not None:
+        print('Merging plit training data with validation data.')
+        f.write('Merging plit training data with validation data.\n')
+        f.write('X_val original shape: ' + str(X_val.shape) + '\n')
+        f.write('y_val original shape: ' + str(y_val.shape) + '\n')
+
+        f.write('Training data split off:\n')
+        f.write('X_split shape: ' + str(X_split.shape) + '\n')
+        f.write('y_split shape: ' + str(y_split.shape) + '\n')
+
+        X_val = np.concatenate((X_val, X_split), axis=0)
+        y_val = np.concatenate((y_val, y_split), axis=0)
+
+        f.write('Post merging data:\n')
+        f.write('X_val merged shape: ' + str(X_val.shape) + '\n')
+        f.write('y_val merged shape: ' + str(y_val.shape) + '\n')
+
+        del y_split
+        del X_split
+        y_split = None
+        X_split = None
+    else:
+        f.write('Not merging.')
+
+    f.close()
+
     # CONSTRUCTION
     ##############
     steps_per_epoch = math.nan
     print("Building model...")
-    gpu_indexes = list(gpu_index_string.replace(",", ""))
-    gpu_index_count = len(gpu_indexes)
-    print("Visible GPUs: '" + gpu_index_string + "'. Count: " + str(gpu_index_count))
-
-    model = omnisphero_CNN(n_classes, input_height, input_width, input_depth, data_format)
+    model: Model = models.omnisphero_model(n_classes, input_height, input_width, input_depth, data_format)
     if gpu_index_count > 1:
         model = multi_gpu_model(model, gpus=gpu_index_count)
         steps_per_epoch = len(X) / epochs
@@ -765,9 +660,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
         # https://github.com/keras-team/keras/issues/11434#issuecomment-439832556
 
     print("Compiling model...")
-    # model.compile(loss=custom_loss_mse, optimizer=SGD(lr=learn_rate), metrics=['accuracy'])
     model.compile(loss=lossEnum, optimizer=optimizer, metrics=metrics)
-    # TODO use dynamic params
     model.summary()
     print("Model output shape: ", model.output_shape)
     print("Model metric names: " + str(model.metrics_names))
@@ -782,12 +675,13 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     f.close()
 
     # plot_model(model, to_file=outPathCurrent + label + '_model.png', show_shapes=True, show_layer_names=True)
-    f = open(out_path + 'model_training.txt', 'w+')
+    f = open(out_path + 'model_training_params.txt', 'w+')
     data_gen_description = 'None.'
     if data_gen is not None:
         data_gen_description = 'Used: ' + str(data_gen)
 
-    f.write('Training time: ' + gct() + '\n')
+    f.write('Training start time: ' + gct() + '\n')
+    f.write('Model: ' + str(model) + '\n')
     if label is not None:
         f.write('Label: ' + label + '\n')
     f.write('Loss: ' + lossEnum + '\n')
@@ -800,20 +694,29 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     f.write('Input depth: ' + str(input_depth) + '\n')
     f.write('Data Format: ' + str(data_format) + '\n')
     f.write('Learn Rate: ' + str(learn_rate) + '\n')
+    f.write('SGD Momentum: ' + str(sgd_momentum) + '\n')
+    f.write('SGD Nesterov: ' + str(sgd_nesterov) + '\n')
     f.write('Epochs: ' + str(epochs) + '\n')
     f.write('Normalization mode: ' + str(normalize_enum) + '\n')
     f.write('Model metrics: ' + str(model.metrics_names) + '\n')
     f.write('Model optimizer: ' + str(optimizer) + '\n')
+    f.write('Has lr-adjusting optimizer: ' + str(has_lr_adjusting_optimizer) + '\n')
     f.write('Model metrics raw: ' + str(metrics) + '\n')
     f.write('Data Generator used: ' + data_gen_description + '\n')
     f.write('SMOTE Parameters: ' + str(smote_params) + '\n')
     f.write('SMOTE Error: ' + smote_error_text + '\n')
+    f.write('Train-Test Split: Proportions: ' + str(split_proportion) + '\n')
+    f.write('Train-Test Split: Stragize: ' + str(split_stratify) + '\n')
 
     f.write('\n == DATA: ==\n')
     f.write("X shape: " + str(X.shape) + '\n')
     f.write("y shape: " + str(y.shape) + '\n')
+    f.write('y==0 count: ' + str(np.count_nonzero(y == 0)) + '\n')
+    f.write('y==1 count: ' + str(np.count_nonzero(y == 1)) + '\n')
     f.write("X_val shape: " + str(X_val.shape) + '\n')
     f.write("y_val shape: " + str(y_val.shape) + '\n')
+    f.write('y_val==0 count: ' + str(np.count_nonzero(y_val == 0)) + '\n')
+    f.write('y_val==1 count: ' + str(np.count_nonzero(y_val == 1)) + '\n')
 
     f.close()
 
@@ -855,6 +758,10 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     f.write(gct() + '\nEpoch;Accuracy;Loss;??;Validation Accuracy; Validation Loss\n')
     f.close()
 
+    if example_sample_count > 0:
+        save_random_samples(X, y, count=example_sample_count, path=sample_path + os.sep + 'train' + os.sep)
+        save_random_samples(X_val, y_val, count=example_sample_count, path=sample_path + os.sep + 'val' + os.sep)
+
     # CALLBACKS
     ###########
     learn_rate_reduction_patience = 110
@@ -867,25 +774,33 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     weights_best_filename = out_path + 'weights_best.h5'
     model_checkpoint = ModelCheckpoint(checkpoint_out_path + 'weights_ep{epoch:08d}.h5', verbose=1,
                                        save_weights_only=True, period=50)
-    model_checkpoint_best = ModelCheckpoint(weights_best_filename, monitor='val_loss', verbose=1, save_best_only=True,
+    model_checkpoint_best = ModelCheckpoint(weights_best_filename, monitor='val_loss', verbose=1,
+                                            save_best_only=True,
                                             mode='min')
-    lrCallBack = ReduceLROnPlateau(monitor='val_loss', factor=learn_rate_factor, patience=learn_rate_reduction_patience,
+    lrCallBack = ReduceLROnPlateau(monitor='val_loss', factor=learn_rate_factor,
+                                   patience=learn_rate_reduction_patience,
                                    verbose=1,
                                    mode='auto', min_delta=0.000001, cooldown=0, min_lr=0.000001)
     csv_logger = CSVLogger(log_out_path, separator=';', append=True)
-    early_stop_callback = EarlyStopping(monitor='val_loss', patience=es_patience, verbose=1, mode='auto', baseline=None,
+    early_stop_callback = EarlyStopping(monitor='val_loss', patience=es_patience, verbose=1, mode='auto',
+                                        baseline=None,
                                         restore_best_weights=True)  # early stopping
-    canary_interrupt_callback = CanaryInterruptCallback(path=out_path)
-    live_plot_callback = PlotTrainingLiveCallback(out_path=out_path, gpu_index_string=gpu_index_string)
+    canary_interrupt_callback = misc_cnn.CanaryInterruptCallback(path=out_path)
+    live_plot_callback = misc_cnn.PlotTrainingLiveCallback(out_dir=out_path, label=gpu_index_string,
+                                                           epochs_target=epochs)
 
     callbacks_list = [model_checkpoint,
                       model_checkpoint_best,
-                      lrCallBack,
                       csv_logger,
-                      # early_stop_callback,
+                      early_stop_callback,
+
                       canary_interrupt_callback,
                       live_plot_callback
                       ]
+
+    if not has_lr_adjusting_optimizer:
+        callbacks_list.append(lrCallBack)
+        print('Including ReduceLROnPlateau Callback.')
 
     # TRAINING
     ##########
@@ -894,24 +809,21 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     print('Saving model here: ' + out_path)
     print('Training started: ' + gct())
 
-    # Setting the os cuda environment
-    os.environ["CUDA_VISIBLE_DEVICES"] = gpu_index_string
-
     # Checking if a data generator exists. If so, datagen mode will be used. If not, classic training.
     history_all = None
     if data_gen is None:
         print('Fitting model without a data gen!')
-        history_all = model.fit(X, y,
+        history_all = model.fit(x=X, y=y,
                                 validation_data=(X_val, y_val),
                                 callbacks=callbacks_list,
                                 epochs=epochs,
                                 batch_size=batch_size,
-                                class_weight=class_weights
+                                # class_weight=class_weights
                                 )
     else:
         print('Fitting model and using a data gen!')
         history_all = model.fit_generator(data_gen.flow(
-            X, y,
+            x=X, y=y,
             batch_size=batch_size,
             # save_to_dir=augment_path,
             # save_prefix='aug'
@@ -937,14 +849,18 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     try:
         plot_training_history(history_all=history_all, fig_path=fig_path, img_dpi=img_dpi)
     except Exception as e:
-        print(gct() + " Failed plot history!!")
+        print(gct() + " Failed plot history! Error type:")
+        print(e)
         # TODO print stacktrace
 
     # SAVING ON MEMORY
     del X_val
     del X
+    del X_split
+
     del y
     del y_val
+    del y_split
     del model
 
     # TEST DATA
@@ -1025,8 +941,9 @@ def plot_training_history(history_all, fig_path, img_dpi=img_dpi_default):
         out_file_header = out_file_header + label + ";"
         history[0][:, i] = history_all.history[hist_key]
 
+        title = 'Raw ' + label
         plt.plot(history_all.history[hist_key])
-        plt.title(label)
+        plt.title(title)
         plt.ylabel(label)
         plt.xlabel('Epoch')
 
@@ -1035,16 +952,25 @@ def plot_training_history(history_all, fig_path, img_dpi=img_dpi_default):
         plt.savefig(fig_path + 'raw_' + hist_key + '.pdf', dpi=img_dpi, transparent=True)
         plt.clf()
 
+        f = open(fig_path + 'raw_' + hist_key + '.tex', 'w')
+        f.write(misc_cnn.get_plt_as_tex(data_list_y=[history_all.history[hist_key]], title=title,
+                                        label_y=label, label_x='Epoch',
+                                        plot_colors=['blue']))
+        f.close()
+
         i = i + 1
         print('Saved raw data for: ' + hist_key + ' [' + label + '].')
 
         val_hist_key = 'val_' + hist_key
         if val_hist_key in hist_key_set:
             val_label = decode_history_key(val_hist_key)
+            h_train = history_all.history[hist_key]
+            h_val = history_all.history[val_hist_key]
 
-            plt.plot(history_all.history[hist_key])
-            plt.plot(history_all.history[val_hist_key])
-            plt.title('Model ' + label)
+            title = 'Model ' + label
+            plt.plot(h_train)
+            plt.plot(h_val)
+            plt.title(title)
             plt.ylabel(label)
             plt.xlabel('Epoch')
             plt.legend(['Train', 'Validation'], loc='best')
@@ -1053,36 +979,14 @@ def plot_training_history(history_all, fig_path, img_dpi=img_dpi_default):
             plt.savefig(fig_path + 'val_' + hist_key + '.svg', dpi=img_dpi, transparent=True)
             plt.savefig(fig_path + 'val_' + hist_key + '.pdf', dpi=img_dpi, transparent=True)
             plt.clf()
+
+            f = open(fig_path + 'model_' + hist_key + '.tex', 'w')
+            f.write(misc_cnn.get_plt_as_tex(data_list_y=[h_train, h_val], title=title,
+                                            label_y=label, label_x='Epoch', plot_titles=['Training', 'Validation'],
+                                            plot_colors=['blue', 'orange']))
+            f.close()
+
             print('Saved combined validation: ' + label + ' & ' + val_label)
-
-    if 'acc' in hist_key_set and 'val_acc' in hist_key_set:
-        plt.plot(history_all.history['acc'])
-        plt.plot(history_all.history['val_acc'])
-        plt.title('Model accuracy')
-        plt.ylabel('Accuracy')
-        plt.xlabel('Epoch')
-        plt.legend(['Train', 'Validation'], loc='best')
-
-        plt.savefig(fig_path + 'accuracy.png', dpi=img_dpi)
-        plt.savefig(fig_path + 'accuracy.svg', dpi=img_dpi, transparent=True)
-        plt.savefig(fig_path + 'accuracy.pdf', dpi=img_dpi, transparent=True)
-        plt.clf()
-        print('Saved accuracy.')
-
-    if 'loss' in hist_key_set and 'val_loss' in hist_key_set:
-        # Plot training & validation loss values
-        plt.plot(history_all.history['loss'])
-        plt.plot(history_all.history['val_loss'])
-        plt.title('Model loss')
-        plt.ylabel('Loss')
-        plt.xlabel('Epoch')
-        plt.legend(['Train', 'Validation'], loc='best')
-
-        plt.savefig(fig_path + 'loss.png', dpi=img_dpi)
-        plt.savefig(fig_path + 'loss.pdf', dpi=img_dpi, transparent=True)
-        plt.savefig(fig_path + 'loss.svg', dpi=img_dpi, transparent=True)
-        plt.clf()
-        print('Saved loss.')
 
     # SAVING HISTORY
     np.save(fig_path + "history.npy", history)
@@ -1133,10 +1037,11 @@ def main():
 
     out_path_oligo_debug = out_path_base + 'oligo_debug' + os.sep
 
-    oligo_mode = True
-    neuron_mode = False
+    oligo_mode = False
+    oligo_mode2 = True
+    neuron_mode = True
     debug_mode = False
-    n_jobs = 1
+    n_jobs = 40
 
     print('Sleeping....')
     # time.sleep(18000)
@@ -1145,55 +1050,101 @@ def main():
         train_model(
             training_path_list=debug_oligos,
             validation_path_list=debug_oligos_validation,
-            test_data_path=test_data_path_oligo,
+            test_data_path='/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_test/',
             # data_gen=data_gen,
-            # out_path=out_path_oligo_debug,
-            out_path=out_path + 'paper-debug-smote' + os.sep + 'oligo-debug' + os.sep,
-            use_SMOTE=True,
-            n_jobs=19,
-            gpu_index_string="2",
-            epochs=5
+            use_SMOTE=False,
+            out_path=out_path + 'paper-final_SGD' + os.sep + 'oligo-split2' + os.sep,
+            gpu_index_string="1",
+            optimizer='adam',
+            single_thread_loading=False,
+            split_proportion=0.2,
+            epochs=10
         )
+
+    if oligo_mode2:
+        train_model(
+            training_path_list=final_oligos_validated,
+            validation_path_list=final_oligos_validated_validation_set,
+            test_data_path=test_data_path_oligo,
+            data_gen=data_gen,
+            use_SMOTE=False,
+            out_path=out_path + 'paper-final_datagen' + os.sep + 'oligo-normalize4' + os.sep,
+            normalize_enum=4,
+            gpu_index_string="0",
+            n_jobs=n_jobs,
+            optimizer='SGD',
+            epochs=5000
+        )
+
 
     if oligo_mode:
         train_model(
             training_path_list=final_oligos_validated,
             validation_path_list=final_oligos_validated_validation_set,
             test_data_path=test_data_path_oligo,
-            # data_gen=data_gen,
-            use_SMOTE=True,
-            out_path=out_path + 'paper-final_smote_no-datagen' + os.sep + 'oligo' + os.sep,
-            n_jobs=n_jobs,
-            gpu_index_string="0",
-            epochs=2500
+            data_gen=data_gen,
+            use_SMOTE=False,
+            out_path=out_path + 'paper-final_datagen' + os.sep + 'oligo-normalize1' + os.sep,
+            normalize_enum=1,
+            gpu_index_string="1",
+            optimizer='SGD',
+            epochs=5000
+        )
+        train_model(
+            training_path_list=final_oligos_validated,
+            validation_path_list=final_oligos_validated_validation_set,
+            test_data_path=test_data_path_oligo,
+            data_gen=data_gen,
+            use_SMOTE=False,
+            out_path=out_path + 'paper-final_datagen' + os.sep + 'oligo-normalize2' + os.sep,
+            normalize_enum=2,
+            gpu_index_string="1",
+            optimizer='SGD',
+            epochs=5000
+        )
+        train_model(
+            training_path_list=final_oligos_validated,
+            validation_path_list=final_oligos_validated_validation_set,
+            test_data_path=test_data_path_oligo,
+            data_gen=data_gen,
+            use_SMOTE=False,
+            out_path=out_path + 'paper-final_datagen' + os.sep + 'oligo-normalize3' + os.sep,
+            normalize_enum=0,
+            gpu_index_string="3",
+            optimizer='SGD',
+            epochs=5000
         )
 
+    #paper-final_no-datagen\neuron
     if neuron_mode:
         train_model(
             training_path_list=final_neurons_validated,
             validation_path_list=final_neurons_validated_validation_set,
             test_data_path=test_data_path_neuron,
-            # data_gen=data_gen,
-            use_SMOTE=True,
-            out_path=out_path + 'paper-final_smote_no-datagen' + os.sep + 'neuron' + os.sep,
+            data_gen=data_gen,
+            use_SMOTE=False,
+            out_path=out_path + 'paper-final_datagen' + os.sep + 'neuron-normalize4' + os.sep,
+            normalize_enum=4,
+            gpu_index_string="0",
             n_jobs=n_jobs,
-            gpu_index_string="1",
-            epochs=2500
+            optimizer='SGD',
+            epochs=5000
         )
 
     # out_path_oligo = out_path+'oligo'+os.sep
     # out_path_neuron = out_path+'neuron'+os.sep
 
+    #
+    # train_model_scrambling(path_candidate_list=final_oligos_validated,
+    #                       test_data_path=test_data_path_oligo,
+    #                       out_path=out_path_oligo,
+    #                       validation_count=1)
+    # train_model_scrambling(path_candidate_list=final_neurons_validated,
+    #                       test_data_path=test_data_path_neuron,
+    #                       out_path=out_path_neuron,
+    #                       validation_count=1)
 
-#
-# train_model_scrambling(path_candidate_list=final_oligos_validated,
-#                       test_data_path=test_data_path_oligo,
-#                       out_path=out_path_oligo,
-#                       validation_count=1)
-# train_model_scrambling(path_candidate_list=final_neurons_validated,
-#                       test_data_path=test_data_path_neuron,
-#                       out_path=out_path_neuron,
-#                       validation_count=1)
+    print('Finished all trainings. Goodbye.')
 
 
 if __name__ == "__main__":

@@ -7,17 +7,13 @@ Joshua Butke
 # IMPORTS
 #########
 
-import os
-import time
-
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 from keras.models import load_model
 
 # Custom Module
 ###############
 import misc_omnisphero as misc
+from misc_omnisphero import *
 
 gpu_index_string = "2"
 
@@ -33,8 +29,11 @@ model_source_path_neuron = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/
 # MODELS TO BE VALIDATED
 # modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/oligo_fieldTest_WObrightness_longer/0_custom/'
 
-source_dir_oligo = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_43/'
-source_dir_neuron = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_43/'
+source_dir_oligo = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_4/'
+source_dir_neuron = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_4/'
+
+source_dir_whole_well_oligo = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_wholeWell/'
+source_dir_whole_well_neuron = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_wholeWell/'
 
 # ######### To validate, use these whole well experiments: #########
 # source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/oligo/unannotated/'
@@ -54,12 +53,13 @@ source_dir_neuron = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_4
 # 2 = normalize every cell individually with every color channel independent
 # 3 = normalize every cell individually with every color channel using the min / max of all three
 # 4 = normalize every cell but with bounds determined by the brightest cell in the same well
-normalize_enum = 1
+normalize_enum = None
 
 
 def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int = normalize_enum,
                   gpu_index_string=gpu_index_string):
     print('Loading model: ' + model_source_path)
+    print('Data to predict: ' + source_dir)
 
     gpu_indexes = list(gpu_index_string.replace(",", ""))
     gpu_index_count = len(gpu_indexes)
@@ -76,7 +76,6 @@ def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int =
     else:
         model = load_model(model_source_path + 'model.h5')
         model.load_weights(model_source_path + 'weights_best.h5')
-
     print("Loaded model...")
 
     dir_list = []
@@ -88,9 +87,9 @@ def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int =
 
     global_progress_max = len(dir_list)
     global_progress_current = 0
-    print('Predicting experiment count: ' + str(global_progress_max))
+    print(gct() + ' Predicting experiment count: ' + str(global_progress_max))
 
-    print('Waiting. Prediction will start soon! Buckle up!')
+    print(gct() + ' Waiting. Prediction will start soon! Buckle up!')
     time.sleep(6)
 
     for folder in dir_list[0:]:
@@ -100,6 +99,7 @@ def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int =
 
         global_progress_current = global_progress_current + 1
         if "unannotated" not in folder:
+            print('Ignoring non-data folder: "'+folder+'"')
             continue
 
         # load data
@@ -196,22 +196,38 @@ def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int =
         else:
             print('Too many labels predicted. Histogram skipped.')
 
-    # END OF FILE
-    #############
-    print('Predictions done.')
-
 
 def main():
     use_oligo = False
-    use_neuron = True
+    use_neuron = False
+    use_debug = True
+
+    # Paper Models trained for N4
+    model_source_path_oligo_paper = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/training/debug/paper-final_datagen/oligo-normalize4/'
+    model_source_path_neuron_paper = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/training/debug/paper-final_datagen/neuron-normalize4/'
 
     if use_neuron:
-        predict_batch(model_source_path=model_source_path_neuron, source_dir=source_dir_neuron, normalize_enum=normalize_enum,
-                  gpu_index_string="2")
+        predict_batch(model_source_path=model_source_path_neuron, source_dir=source_dir_neuron,
+                      normalize_enum=1,
+                      gpu_index_string="0")
 
     if use_oligo:
-        predict_batch(model_source_path=model_source_path_oligo, source_dir=source_dir_oligo, normalize_enum=normalize_enum,
-                  gpu_index_string="3")
+        predict_batch(model_source_path=model_source_path_oligo, source_dir=source_dir_oligo,
+                      normalize_enum=1,
+                      gpu_index_string="0")
+
+    if use_debug:
+        predict_batch(model_source_path=model_source_path_oligo_paper,
+                      source_dir=source_dir_oligo,
+                      normalize_enum=4,
+                      gpu_index_string="0")
+
+        predict_batch(model_source_path=model_source_path_neuron_paper,
+                      source_dir=source_dir_neuron,
+                      normalize_enum=4,
+                      gpu_index_string="0")
+
+    print(gct() + ' All Predictions done. Have a nice day. =)')
 
 
 if __name__ == "__main__":

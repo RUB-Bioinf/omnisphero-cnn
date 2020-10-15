@@ -255,8 +255,22 @@ class PlotTrainingLiveCallback(Callback):
 # OTHER UTIL FUNCTIONS
 # ###############################
 
-def gct():
-    return datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+def gct(raw: bool = False):
+    n = datetime.now()
+    if raw:
+        return n
+    return n.strftime("%d/%m/%Y %H:%M:%S")
+
+
+def get_time_diff(start_time: datetime):
+    diff = datetime.now() - start_time
+    minutes = divmod(diff.total_seconds(), 60)
+
+    m: str = str(int(minutes[0]))
+    s: str = str(int(minutes[1]))
+    if minutes[1] < 10:
+        s = '0' + s
+    return m + ':' + s
 
 
 # ###############################

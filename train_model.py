@@ -442,8 +442,8 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     # TRAINING DATA
     ###############
     print("Loading training data. Folder count: " + str(len(training_path_list)))
-    X, y, _ = multiple_hdf5_loader(training_path_list, gp_current=global_progress_current, gp_max=global_progress_max,
-                                   normalize_enum=normalize_enum, n_jobs=len(training_path_list),
+    X, y, training_loading_errors = multiple_hdf5_loader(training_path_list, gp_current=global_progress_current, gp_max=global_progress_max,
+                                   normalize_enum=normalize_enum, n_jobs=n_jobs,
                                    single_thread_loading=single_thread_loading)  # load datasets
 
     # print(y.shape)
@@ -517,6 +517,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
         smote_out_file = out_path + 'smote_progress.txt'
         f = open(smote_out_file, 'w')
 
+        smote_start_time = gct(raw=True)
         print('Starting SMOTE. Threads: ' + str(n_jobs) + '. ' + gct())
         try:
             X_smote = X.reshape(n_samples, n_x * n_y * n_z)
@@ -534,6 +535,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
             new_samples = X_smote.shape[0]
 
             f.write('Finished time: ' + gct() + '\n')
+            f.write('Runtime: '+get_time_diff(smote_start_time))
             f.write('X_smote shape: ' + str(X_smote.shape) + '\n')
             f.write('y_smote shape: ' + str(y_smote.shape) + '\n')
             f.write('New class 0 count: ' + str(np.count_nonzero(y_smote == 0)) + '\n')
@@ -556,6 +558,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
             new_samples = np.nan
             f.write('\nError! -> ' + smote_error_text)
 
+        print('Running smote took: '+get_time_diff(smote_start_time))
         try:
             save_smote_samples(X_smote, y_smote, n_samples, new_samples, augment_smote_path,
                                out_samples=k_neighbors + 5)
@@ -591,11 +594,11 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     # VALIDATION DATA
     #################
     print("Loading validation data. Source folder count: " + str(len(validation_path_list)))
-    X_val, y_val, _ = multiple_hdf5_loader(validation_path_list, gp_current=global_progress_current,
+    X_val, y_val, val_loading_errors = multiple_hdf5_loader(validation_path_list, gp_current=global_progress_current,
                                            gp_max=global_progress_max,
                                            normalize_enum=normalize_enum,
                                            single_thread_loading=single_thread_loading,
-                                           n_jobs=len(validation_path_list))
+                                           n_jobs=n_jobs)
     print("Validation data shape: " + str(y_val.shape))
     if n_classes == 2:
         y_val = np.append(y_val, 1 - y_val, axis=1)
@@ -872,11 +875,22 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
 
     try:
         print('Test started')
-        test_cnn(out_path, test_data_path, normalize_enum, img_dpi, gpu_index_string, True, label='train-test')
+        test_cnn(out_path, test_data_path, normalize_enum, img_dpi, gpu_index_string, True, label='train-test',n_jobs=n_jobs)
         print('Test finished')
     except Exception as e:
-        print(gct() + " Failed to execute CNN TEST!")
+        print(gct() + " Failed to execute CNN TEST! Error type:")
+        print(str(e))
         # TODO print stacktrace
+
+        try:
+            #Printing the error message as a file.
+            ef = open(out_path+os.sep+'test_error.txt','w');
+            ef.write(gct()+'\n')
+            ef.write('Fatal error: '+str(e))
+            ef.close()
+        except Exception as e2:
+            print(gct() + " Even failed to save the error to a file!!")
+            print(str(e2))
 
     # END OF Training
     #############
@@ -1038,7 +1052,6 @@ def main():
     out_path_oligo_debug = out_path_base + 'oligo_debug' + os.sep
 
     oligo_mode = False
-    oligo_mode2 = True
     neuron_mode = True
     debug_mode = False
     n_jobs = 40
@@ -1053,55 +1066,15 @@ def main():
             test_data_path='/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_test/',
             # data_gen=data_gen,
             use_SMOTE=False,
-            out_path=out_path + 'paper-final_SGD' + os.sep + 'oligo-split2' + os.sep,
-            gpu_index_string="1",
+            out_path=out_path + 'paper-final_SGD' + os.sep + 'oligo-split-debug-concurrent3' + os.sep,
+            gpu_index_string="3",
             optimizer='adam',
-            single_thread_loading=False,
             split_proportion=0.2,
+            n_jobs=19,
             epochs=10
         )
 
-    if oligo_mode2:
-        train_model(
-            training_path_list=final_oligos_validated,
-            validation_path_list=final_oligos_validated_validation_set,
-            test_data_path=test_data_path_oligo,
-            data_gen=data_gen,
-            use_SMOTE=False,
-            out_path=out_path + 'paper-final_datagen' + os.sep + 'oligo-normalize4' + os.sep,
-            normalize_enum=4,
-            gpu_index_string="0",
-            n_jobs=n_jobs,
-            optimizer='SGD',
-            epochs=5000
-        )
-
-
     if oligo_mode:
-        train_model(
-            training_path_list=final_oligos_validated,
-            validation_path_list=final_oligos_validated_validation_set,
-            test_data_path=test_data_path_oligo,
-            data_gen=data_gen,
-            use_SMOTE=False,
-            out_path=out_path + 'paper-final_datagen' + os.sep + 'oligo-normalize1' + os.sep,
-            normalize_enum=1,
-            gpu_index_string="1",
-            optimizer='SGD',
-            epochs=5000
-        )
-        train_model(
-            training_path_list=final_oligos_validated,
-            validation_path_list=final_oligos_validated_validation_set,
-            test_data_path=test_data_path_oligo,
-            data_gen=data_gen,
-            use_SMOTE=False,
-            out_path=out_path + 'paper-final_datagen' + os.sep + 'oligo-normalize2' + os.sep,
-            normalize_enum=2,
-            gpu_index_string="1",
-            optimizer='SGD',
-            epochs=5000
-        )
         train_model(
             training_path_list=final_oligos_validated,
             validation_path_list=final_oligos_validated_validation_set,
@@ -1122,11 +1095,11 @@ def main():
             validation_path_list=final_neurons_validated_validation_set,
             test_data_path=test_data_path_neuron,
             data_gen=data_gen,
-            use_SMOTE=False,
-            out_path=out_path + 'paper-final_datagen' + os.sep + 'neuron-normalize4' + os.sep,
+            use_SMOTE=True,
+            out_path=out_path + 'paper-final_datagen' + os.sep + 'neuron-normalize4-concurrentSMOTE' + os.sep,
             normalize_enum=4,
             gpu_index_string="0",
-            n_jobs=n_jobs,
+            n_jobs=30,
             optimizer='SGD',
             epochs=5000
         )

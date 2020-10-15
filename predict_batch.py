@@ -29,8 +29,8 @@ model_source_path_neuron = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/
 # MODELS TO BE VALIDATED
 # modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/oligo_fieldTest_WObrightness_longer/0_custom/'
 
-source_dir_oligo = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_4/'
-source_dir_neuron = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_4/'
+source_dir_oligo = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/oligo_6/'
+source_dir_neuron = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/neuron_6/'
 
 source_dir_whole_well_oligo = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_wholeWell/'
 source_dir_whole_well_neuron = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_wholeWell/'
@@ -57,7 +57,7 @@ normalize_enum = None
 
 
 def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int = normalize_enum,
-                  gpu_index_string=gpu_index_string):
+                  gpu_index_string=gpu_index_string,n_jobs=1):
     print('Loading model: ' + model_source_path)
     print('Data to predict: ' + source_dir)
 
@@ -102,9 +102,9 @@ def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int =
             print('Ignoring non-data folder: "'+folder+'"')
             continue
 
+        print('Loading prediction data.')
         # load data
-        X_to_predict, _ = misc.hdf5_loader(str(folder), gp_current=global_progress_current, gp_max=global_progress_max,
-                                           normalize_enum=normalize_enum)
+        X_to_predict, _, loading_errors = misc.hdf5_loader(str(folder), gp_current=global_progress_current, gp_max=global_progress_max, normalize_enum=normalize_enum, n_jobs=n_jobs,force_verbose=True)
 
         # process data
         X_to_predict = np.asarray(X_to_predict)
@@ -198,9 +198,10 @@ def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int =
 
 
 def main():
-    use_oligo = False
-    use_neuron = False
-    use_debug = True
+    use_oligo = True
+    use_neuron = True
+    use_debug = False
+    n_jobs:int = 20
 
     # Paper Models trained for N4
     model_source_path_oligo_paper = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/training/debug/paper-final_datagen/oligo-normalize4/'
@@ -209,22 +210,26 @@ def main():
     if use_neuron:
         predict_batch(model_source_path=model_source_path_neuron, source_dir=source_dir_neuron,
                       normalize_enum=1,
+                      n_jobs=n_jobs,
                       gpu_index_string="0")
 
     if use_oligo:
         predict_batch(model_source_path=model_source_path_oligo, source_dir=source_dir_oligo,
                       normalize_enum=1,
-                      gpu_index_string="0")
+                      n_jobs=n_jobs,
+                      gpu_index_string="1")
 
     if use_debug:
         predict_batch(model_source_path=model_source_path_oligo_paper,
                       source_dir=source_dir_oligo,
                       normalize_enum=4,
+                      n_jobs=n_jobs,
                       gpu_index_string="0")
 
         predict_batch(model_source_path=model_source_path_neuron_paper,
                       source_dir=source_dir_neuron,
                       normalize_enum=4,
+                      n_jobs=n_jobs,
                       gpu_index_string="0")
 
     print(gct() + ' All Predictions done. Have a nice day. =)')

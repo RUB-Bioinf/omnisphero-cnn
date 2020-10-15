@@ -18,22 +18,39 @@ cuda_devices = "0"
 # test_data_path = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/oligo/EKB25_trainingData_oligo/'
 # test_data_path = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/neuron/EKB25_trainingData_neuron/'
 
-# KONTROLLIERT DATA
+# KONTROLLIERT TEST DATA
 # model_path = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/debug-kontrolliert-weighted/neuron-n4-ep1500/0_custom/'
 test_data_path_oligo = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_test/'
 test_data_path_neuron = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_test/'
 
+test_data_path_oligo_filter = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_test_filters/'
+test_data_path_neuron_filter = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_test_filters/'
+
+test_data_path_oligo_filter_erneut = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_erneut_kontrolliert_test_filters/'
+test_data_path_neuron_filter_erneut = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_erneut_kontrolliert_test_filters/'
+
+test_data_path_oligo_withoutKB25 = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_test_woBK25/'
+test_data_path_neuron_withoutKB25 = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_test_woBK25/'
+
 test_data_path_oligo_debug = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_test_debug/'
 test_data_path_neuron_debug = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_test_debug/'
 
+# Models in use:
+model_path_paper_neuron = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/debug/paper-final_datagen/neuron-normalize4/'
+model_path_paper_oligo = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/debug/paper-final_datagen/oligo-normalize4/'
+
 normalize_enum = 4
-img_dpi = 450
+img_dpi_default = 450
 label = 'cnn-test'
+cuda_devices_default = "0"
 
-
-def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi: int, cuda_devices: str,
-             include_date: bool = True, label: str = 'cnn-test'):
+def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi: int=img_dpi_default, cuda_devices: str=cuda_devices_default,
+             include_date: bool = True, label: str = 'cnn-test',n_jobs:int = 1):
     os.environ["CUDA_VISIBLE_DEVICES"] = cuda_devices
+
+    print(' ### Testing CNN! ###')
+    print('Model path: '+model_path)
+    print('Test Data path: '+test_data_path)
 
     # TESTING
     fig_path = model_path + os.sep + label
@@ -55,7 +72,7 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
 
     print('Loading test data: ' + test_data_path)
     y_test = np.empty((0, 1))
-    X_test, y_test = misc.hdf5_loader(test_data_path, gp_current=1, gp_max=1, normalize_enum=normalize_enum)
+    X_test, y_test, test_loading_errors = misc.hdf5_loader(test_data_path, gp_current=1, gp_max=1, normalize_enum=normalize_enum, n_jobs=n_jobs, force_verbose = True)
     print('Finished loading test data.')
 
     print('Done. Preprocessing test data.')
@@ -262,9 +279,9 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
 
 
 def main():
-    oligo_mode = True
-    neuron_mode = True
-    debug_mode = False
+    oligo_mode = False
+    neuron_mode = False
+    debug_mode = True
 
     o1 = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/training/debug/paper-final_datagen/oligo-old/'
     n1 = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/training/debug/paper-final_datagen/neuron/'
@@ -273,13 +290,12 @@ def main():
     print("Running CNN test.")
     if oligo_mode:
         # test_cnn(o1, test_data_path_oligo, normalize_enum, img_dpi, cuda_devices, True, label='cnn-test')
-        test_cnn(o1, test_data_path_oligo, normalize_enum, img_dpi, cuda_devices="0", True, label='cnn-debug-test')
-        pass
+        test_cnn(o1, test_data_path_oligo, normalize_enum, cuda_devices="0", label='cnn-debug-test')
     if neuron_mode:
-        test_cnn(n1, test_data_path_neuron, normalize_enum, img_dpi, cuda_devices="0", True, label='cnn-debug-test')
-        pass
+        test_cnn(n1, test_data_path_neuron, normalize_enum, cuda_devices="0", label='cnn-debug-test')
     if debug_mode:
-        test_cnn(db, test_data_path_oligo_debug, normalize_enum, img_dpi, cuda_devices="0", True, label='cnn-debug-test')
+        test_cnn(model_path_paper_neuron, test_data_path_neuron_filter_erneut, n_jobs=15, normalize_enum=4, cuda_devices="1", label='cnn-erneutKontrolliertFilter-test')
+        test_cnn(model_path_paper_oligo, test_data_path_oligo_filter_erneut, n_jobs=15, normalize_enum=4, cuda_devices="1", label='cnn-erneutKontrolliertFilter-test')
 
     print('Testing done.')
 

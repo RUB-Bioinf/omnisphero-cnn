@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from imblearn.over_sampling.smote import SMOTE
 
-from misc_cnn import gct
+from misc_cnn import gct, get_time_diff
 
 # conda install -c glemaitre imbalanced-learn
 # Since conda is absolute bs, use this command to download imblearn from an external source
@@ -45,7 +45,7 @@ hdf5_loeader_default_param_verbose: bool = True
 #####################
 
 def hdf5_loader(path: str, pattern: str = '_[A-Z][0-9]{2}_', suffix_data: str = '.h5', suffix_label: str = '_label.h5',
-                gp_current: int = 0, gp_max: int = 0, normalize_enum: int = 1, verbose: bool = True):
+                gp_current: int = 0, gp_max: int = 0, normalize_enum: int = 1, n_jobs: int = 1, force_verbose: bool = False):
     '''Helper function which loads all datasets from a hdf5 file in
     a specified file at a specified path.
 
@@ -76,104 +76,188 @@ def hdf5_loader(path: str, pattern: str = '_[A-Z][0-9]{2}_', suffix_data: str = 
 
     X = []
     y = []
-    terminal_rows, terminal_columns = os.popen('stty size', 'r').read().split()
 
     os.chdir(path)
     directory = os.fsencode(path)
     directory_contents = os.listdir(directory)
     directory_contents.sort()
+    # well_regex = "(\w\d+)_\d+$"
+    # well_regex = re.compile(well_regex)
 
+    try:
+        terminal_rows, terminal_columns = os.popen('stty size', 'r').read().split()
+        terminal_columns = int(terminal_columns)
+    except Exception as e:
+        terminal_columns = None
+
+    n_jobs = max(n_jobs, 1)
+    verbose:bool = n_jobs == 1
+    if force_verbose:
+        verbose = force_verbose
+
+    file_count = len(directory_contents)
+    if verbose:
+        print('Reading ' + str(normalize_enum) + ' files with normalization strategy index: ' + str(normalize_enum))
+
+
+    executor = ThreadPoolExecutor(max_workers=n_jobs)
+    future_list = []
+    worker_verbose: bool = n_jobs == 1
+
+    if verbose:
+        print('Setting up futures for path: ' + path)
+    for i in range(file_count):
+        filename = os.fsdecode(directory_contents[i])
+        if verbose:
+            line_print('Preparing future to load: ' + filename)
+
+        # last_known_well_index = len(X)
+        # best_well_min = [255, 255, 255]
+        # best_well_max = [0, 0, 0]
+
+        # X_w, y_w = hdf5_loader_worker(filename=filename, path=path, pattern=pattern, suffix_data=suffix_data,
+        #                              suffix_label=suffix_label,
+        #                              gp_current=gp_current, gp_max=gp_max, normalize_enum=normalize_enum,
+        #                              verbose=verbose, terminal_columns=terminal_columns)
+
+        future = executor.submit(hdf5_loader_worker,  # the actual function i want to run. Args, see below
+                                 filename,  # filename
+                                 path,  # path
+                                 pattern,  # pattern
+                                 suffix_data,  # suffix_data
+                                 suffix_label,  # suffix_label
+                                 gp_current,  # gp_current
+                                 gp_max,  # gp_max
+                                 normalize_enum,  # normalize_enum
+                                 worker_verbose,  # verbose
+                                 terminal_columns  # terminal_columns
+                                 )
+        future_list.append(future)
+
+    if verbose:
+        print(gct() + ' Loading ' + str(file_count) + ' label / data .h5 files on ' + str(
+            n_jobs) + ' thread(s)! Progress is indeterminable.\n')
+    start_time = gct(raw=True)
+    all_finished: bool = False
+    executor.shutdown(wait=False)
+
+    while not all_finished:
+        finished_count = 0
+        for future in future_list:
+            if future.done():
+                finished_count = finished_count + 1
+
+        if verbose:
+            line_print('['+str(gp_current)+' / '+str(gp_max)+'] Worker-Threads running. Finished: ' + str(finished_count) + '/' + str(
+                len(future_list)) + '. Running: ' + get_time_diff(start_time) + '. ' + gct(), max_width=terminal_columns)
+        all_finished = finished_count == len(future_list)
+        time.sleep(1)
+
+    if verbose:
+        print('\n' + gct() + ' Finished concurrent execution. Fetching results.')
+
+    error_list = []
+    for future in future_list:
+        e = future.exception()
+        if e is None:
+            X_w, y_w = future.result()
+            if X_w is not None:
+                X.extend(X_w)
+            if y_w is not None:
+                y.extend(y_w)
+        else:
+            print('Error extracting future results: ' +str(e))
+            error_list.append(e)
+
+    return X, y, error_list
+
+
+###
+
+def hdf5_loader_worker(filename: str, path: str, pattern: str, suffix_data: str, suffix_label: str,
+                       gp_current: int, gp_max: int, normalize_enum: int, verbose: bool, terminal_columns: int):
+    worker_x = None
+    worker_y = None
+    best_well_min = [255, 255, 255]
+    best_well_max = [0, 0, 0]
     pattern = re.compile(pattern)
 
     well_regex = "(\w\d+)_\d+$"
     well_regex = re.compile(well_regex)
 
-    file_count = len(directory_contents)
+    if filename.endswith(suffix_label):
+        worker_y = []
+        with h5py.File(path + os.sep + filename, 'r') as f:
+            key_list = list(f.keys())
+            key_list.sort(key=lambda a: int(re.split(pattern, a)[1].split('_')[0]))
 
-    if verbose:
-        print('Reading '+str(normalize_enum)+' files with normalization strategy index: '+str(normalize_enum))
-        print('Did you know your terminal is '+str(terminal_columns)+'x'+str(terminal_rows)+' characters big.')
-    
-    for i in range(file_count):
-        filename = os.fsdecode(directory_contents[i])
+            for key in key_list:
+                if verbose:
+                    line_print("Reading label file: " + filename + " - Current dataset key: " + str(key) + " [" + str(
+                        gp_current) + "/" + str(gp_max) + "]", max_width=terminal_columns)
+                worker_y.append(np.array(f[str(key)]))
+            f.close()
+        # done evaluating y file
+    elif filename.endswith(suffix_data) and not filename.endswith(suffix_label):
+        worker_x = []
+        with h5py.File(path + os.sep + filename, 'r') as f:
+            key_list = list(f.keys())
+            key_list.sort(key=lambda a: int(re.split(pattern, a)[1]))
 
-        last_known_well_index = len(X)
-        best_well_min = [255, 255, 255]
-        best_well_max = [0, 0, 0]
+            for k in range(len(key_list)):
+                key = key_list[k]
+                # print("Loading dataset associated with key ", str(key))
+                current_well = re.split(well_regex, key)[1]
 
-        if filename.endswith(suffix_label):
-            with h5py.File(path + os.sep + filename, 'r') as f:
-                key_list = list(f.keys())
-                key_list.sort(key=lambda a: int(re.split(pattern, a)[1].split('_')[0]))
+                if verbose:
+                    line_print("Reading data file: " + filename + " - Current dataset key: " + str(
+                        key) + " Well: " + current_well + " [" + str(gp_current) + "/" + str(gp_max) + "]",
+                               max_width=terminal_columns)
 
-                for key in key_list:
-                    if verbose:
-                        print(f"Reading label file: " + str(i) + " / " + str(
-                            file_count) + ": " + filename + " - Current dataset key: " + str(key) + " [" + str(
-                            gp_current) + "/" + str(gp_max) + "]   ", end="\r")
-                    y.append(np.array(f[str(key)]))
-                f.close()
-                continue
-        elif filename.endswith(suffix_data) and not filename.endswith(suffix_label):
-            with h5py.File(path + os.sep + filename, 'r') as f:
-                key_list = list(f.keys())
-                key_list.sort(key=lambda a: int(re.split(pattern, a)[1]))
+                current_x = np.array(f[str(key)])
+                if normalize_enum == 0:
+                    pass
+                elif normalize_enum == 1:
+                    current_x = normalize_np(current_x, 0, 255)
+                elif normalize_enum == 2:
+                    current_x[0] = normalize_np(current_x[0], current_x[0].min(), current_x[0].max())
+                    current_x[1] = normalize_np(current_x[1], current_x[1].min(), current_x[1].max())
+                    current_x[2] = normalize_np(current_x[2], current_x[2].min(), current_x[2].max())
+                elif normalize_enum == 3:
+                    current_x[0] = normalize_np(current_x[0], current_x.min(), current_x.max())
+                    current_x[1] = normalize_np(current_x[1], current_x.min(), current_x.max())
+                    current_x[2] = normalize_np(current_x[2], current_x.min(), current_x.max())
+                elif normalize_enum == 4:
+                    best_well_max[0] = max(best_well_max[0], current_x[0].max())
+                    best_well_max[1] = max(best_well_max[1], current_x[1].max())
+                    best_well_max[2] = max(best_well_max[2], current_x[2].max())
 
-                for k in range(len(key_list)):
-                    key = key_list[k]
-                    # print("Loading dataset associated with key ", str(key))
-                    current_well = re.split(well_regex, key)[1]
+                    best_well_min[0] = min(best_well_min[0], current_x[0].min())
+                    best_well_min[1] = min(best_well_min[1], current_x[1].min())
+                    best_well_min[2] = min(best_well_min[2], current_x[2].min())
+                    # TODO: Implement
+                else:
+                    raise Exception('Undefined state of normalize_enum')
 
-                    if verbose:
-                        print(f"Reading data file: " + str(i) + " / " + str(
-                            file_count) + ": " + filename + "                         - Current dataset key: " + str(
-                            key) + " Well: " + current_well + " [" + str(gp_current) + "/" + str(gp_max) + "]   ",
-                              end="\r")
+                worker_x.append(np.array(current_x))
+            f.close()
 
-                    current_x = np.array(f[str(key)])
-                    if normalize_enum == 0:
-                        pass
-                    elif normalize_enum == 1:
-                        current_x = normalize_np(current_x, 0, 255)
-                    elif normalize_enum == 2:
-                        current_x[0] = normalize_np(current_x[0], current_x[0].min(), current_x[0].max())
-                        current_x[1] = normalize_np(current_x[1], current_x[1].min(), current_x[1].max())
-                        current_x[2] = normalize_np(current_x[2], current_x[2].min(), current_x[2].max())
-                    elif normalize_enum == 3:
-                        current_x[0] = normalize_np(current_x[0], current_x.min(), current_x.max())
-                        current_x[1] = normalize_np(current_x[1], current_x.min(), current_x.max())
-                        current_x[2] = normalize_np(current_x[2], current_x.min(), current_x.max())
-                    elif normalize_enum == 4:
-                        best_well_max[0] = max(best_well_max[0], current_x[0].max())
-                        best_well_max[1] = max(best_well_max[1], current_x[1].max())
-                        best_well_max[2] = max(best_well_max[2], current_x[2].max())
+        if normalize_enum == 4:
+            for j in range(len(worker_x)):
+                if verbose:
+                    line_print('Normalizing well entry ' + str(j) + ' / ' + str(
+                        len(worker_x)), max_width=terminal_columns)
+                worker_x[j][0] = normalize_np(worker_x[j][0], best_well_min[0], best_well_max[0])
+                worker_x[j][1] = normalize_np(worker_x[j][1], best_well_min[1], best_well_max[1])
+                worker_x[j][2] = normalize_np(worker_x[j][2], best_well_min[2], best_well_max[2])
 
-                        best_well_min[0] = min(best_well_min[0], current_x[0].min())
-                        best_well_min[1] = min(best_well_min[1], current_x[1].min())
-                        best_well_min[2] = min(best_well_min[2], current_x[2].min())
-                        # TODO: Implement
-                    else:
-                        raise Exception('Undefined state of normalize_enum')
+        # Done evaluating X file
+    else:
+        worker_x = None
+        worker_y = None
+        # print("Unknown file type. Skipping: " + filename)
 
-                    X.append(np.array(current_x))
-                f.close()
-
-            if normalize_enum == 4:
-                for j in range(last_known_well_index, len(X)):
-                    if verbose:
-                        print(f'Normalizing well entry ' + str(j - last_known_well_index) + ' / ' + str(
-                            len(X) - last_known_well_index) + '     <', end="\r")
-                    X[j][0] = normalize_np(X[j][0], best_well_min[0], best_well_max[0])
-                    X[j][1] = normalize_np(X[j][1], best_well_min[1], best_well_max[1])
-                    X[j][2] = normalize_np(X[j][2], best_well_min[2], best_well_max[2])
-
-            # Done evaluating X file
-        else:
-            pass
-            # print("Unknown file type. Skipping: " + filename)
-
-    # Dummy prints to make space for the next prints
-    return X, y
+    return worker_x, worker_y
 
 
 ###
@@ -198,6 +282,13 @@ def multiple_hdf5_loader(path_list: [str], pattern: str = '_[A-Z][0-9]{2}_', suf
         print(y.shape)
     '''
 
+    try:
+        terminal_rows, terminal_columns = os.popen('stty size', 'r').read().split()
+        terminal_columns = int(terminal_columns)
+    except Exception as e:
+        terminal_columns = None
+
+    n_jobs = max(n_jobs, 1)
     if single_thread_loading:
         n_jobs = 1
 
@@ -212,6 +303,10 @@ def multiple_hdf5_loader(path_list: [str], pattern: str = '_[A-Z][0-9]{2}_', suf
     if force_verbose:
         verbose = True
 
+    worker_threads = int((n_jobs-(l/2)) / l)
+    worker_threads = max(worker_threads,1)
+    print('Distributing '+str(l)+' managers with '+ str(worker_threads)+' workers each from a pool of '+str(n_jobs))
+
     for path in path_list:
         print("Preparing to load dataset at: ", path)
         # X, y = hdf5_loader(path, pattern, suffix_data, suffix_label, normalize_enum=normalize_enum, gp_current=i, gp_max=l)
@@ -223,44 +318,85 @@ def multiple_hdf5_loader(path_list: [str], pattern: str = '_[A-Z][0-9]{2}_', suf
                                  i,  # hdf5_loeader_default_param_gp_current
                                  l,  # hdf5_loeader_default_param_gp_max
                                  normalize_enum,  # hdf5_loeader_default_param_normalize_enum
-                                 verbose  # hdf5_loeader_default_param_verbose
+                                 worker_threads,  # n_jobs: int = 1
+                                 force_verbose  # hdf5_loeader_default_param_verbose
                                  )
         future_list.append(future)
+        i = i + 1
 
     print(gct() + ' Loading ' + str(l) + ' data-set(s) on ' + str(n_jobs) + ' thread(s)! Progress is indeterminable.\n')
-    start_time = gct()
+    start_time = gct(raw=True)
     all_finished: bool = False
     executor.shutdown(wait=False)
 
     while not all_finished:
         finished_count = 0
+        error_count = 0
         for future in future_list:
             if future.done():
                 finished_count = finished_count + 1
+                e = future.exception()
+                if e is None:
+                    _, _, errors = future.result()
+                    error_count = error_count + len(errors)
+                else:
+                    error_count = error_count + 1
 
-        print(f'Threads running. Finished: ' + str(finished_count) + '/' + str(len(future_list)) + '. ' + gct(),
-              end="\r")
+        line_print('Loader-Manager Threads running. Finished: ' + str(finished_count) + '/' + str(
+            len(future_list)) + '. Errors: ' + str(error_count) + '. Running: ' + get_time_diff(
+            start_time) + '. ' + gct(), max_width=terminal_columns)
         all_finished = finished_count == len(future_list)
         time.sleep(1)
 
-    print(gct() + ' Finished concurrent execution. Fetching results.')
+    print('\n' + gct() + ' Finished concurrent execution in '+get_time_diff(start_time)+' minutes. Fetching results.')
 
     error_list = []
     for future in future_list:
         e = future.exception()
         if e is None:
-            X, y = future.result()
+            X, y, errors = future.result()
             X = np.asarray(X)
             y = np.asarray(y)
             X_full = np.concatenate((X_full, X), axis=0)
             y_full = np.concatenate((y_full, y), axis=0)
+
+            if len(errors) > 0:
+                error_list.extend(errors)
         else:
-            print('Error extracting future results!!')
-            print(str(e))
+            print('Error extracting future results: ' + str(e))
             error_list.append(e)
 
     print(gct() + ' Finished Loading.')
     return X_full, y_full, error_list
+
+
+def line_print(text: str, max_width: int = None, cutoff_too_large_text: bool = True):
+    text = str(text)
+
+    if max_width is None:
+        try:
+            terminal_rows, terminal_columns = os.popen('stty size', 'r').read().split()
+            terminal_rows = int(terminal_rows)
+            terminal_columns = int(terminal_columns)
+            # print('Did you know your terminal is ' + str(terminal_columns) + 'x' + str(terminal_rows) + ' characters big.')
+        except Exception as e:
+            print(text)
+            return
+    else:
+        terminal_columns = max_width
+
+    out_s = ''
+    if cutoff_too_large_text:  # and len(text) < terminal_columns:
+        for i in range(terminal_columns - 1):
+            if i < len(text):
+                out_s = out_s + text[i]
+            else:
+                out_s = out_s + ' '
+        # out_s = out_s + ' ' + str(len(out_s))
+    else:
+        out_s = str(text)
+
+    print(out_s, end="\r")
 
 
 def save_random_samples(X, y, count: int, path: str):
@@ -364,6 +500,15 @@ def get_immediate_subdirectories(a_dir):
 
 def main():
     print("Thanks for running this function, but it actually does nothing. Have a nice day. =)")
+
+    # import time
+    # line_print("test")
+    # time.sleep(1)
+    # line_print("test2")
+    # time.sleep(1)
+    # line_print("a")
+    # time.sleep(1)
+    # print('\n')
 
 
 if __name__ == "__main__":

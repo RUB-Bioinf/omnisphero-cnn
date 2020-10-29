@@ -442,11 +442,10 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     # TRAINING DATA
     ###############
     print("Loading training data. Folder count: " + str(len(training_path_list)))
-    X, y, training_loading_errors = multiple_hdf5_loader(training_path_list, gp_current=global_progress_current, gp_max=global_progress_max,
+    X, y, training_loading_errors,_ = multiple_hdf5_loader(training_path_list, gp_current=global_progress_current, gp_max=global_progress_max,
                                    normalize_enum=normalize_enum, n_jobs=n_jobs,
                                    single_thread_loading=single_thread_loading)  # load datasets
 
-    # print(y.shape)
     if n_classes == 2:
         y = np.append(y, 1 - y, axis=1)
     print("Finished loading training data. Loaded data has shape: ")

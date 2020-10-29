@@ -45,7 +45,8 @@ hdf5_loeader_default_param_verbose: bool = True
 #####################
 
 def hdf5_loader(path: str, pattern: str = '_[A-Z][0-9]{2}_', suffix_data: str = '.h5', suffix_label: str = '_label.h5',
-                gp_current: int = 0, gp_max: int = 0, normalize_enum: int = 1, n_jobs: int = 1, force_verbose: bool = False):
+                gp_current: int = 0, gp_max: int = 0, normalize_enum: int = 1, n_jobs: int = 1,
+                skip_predicted: bool = False, force_verbose: bool = False):
     '''Helper function which loads all datasets from a hdf5 file in
     a specified file at a specified path.
 
@@ -91,14 +92,14 @@ def hdf5_loader(path: str, pattern: str = '_[A-Z][0-9]{2}_', suffix_data: str = 
         terminal_columns = None
 
     n_jobs = max(n_jobs, 1)
-    verbose:bool = n_jobs == 1
+    verbose: bool = n_jobs == 1
     if force_verbose:
         verbose = force_verbose
 
     file_count = len(directory_contents)
     if verbose:
-        print('Reading ' + str(normalize_enum) + ' files with normalization strategy index: ' + str(normalize_enum))
-
+        print('Reading ' + str(file_count) + ' files with normalization strategy index: ' + str(
+            normalize_enum) + '. Skipping already predicted: ' + str(skip_predicted))
 
     executor = ThreadPoolExecutor(max_workers=n_jobs)
     future_list = []
@@ -109,16 +110,7 @@ def hdf5_loader(path: str, pattern: str = '_[A-Z][0-9]{2}_', suffix_data: str = 
     for i in range(file_count):
         filename = os.fsdecode(directory_contents[i])
         if verbose:
-            line_print('Preparing future to load: ' + filename)
-
-        # last_known_well_index = len(X)
-        # best_well_min = [255, 255, 255]
-        # best_well_max = [0, 0, 0]
-
-        # X_w, y_w = hdf5_loader_worker(filename=filename, path=path, pattern=pattern, suffix_data=suffix_data,
-        #                              suffix_label=suffix_label,
-        #                              gp_current=gp_current, gp_max=gp_max, normalize_enum=normalize_enum,
-        #                              verbose=verbose, terminal_columns=terminal_columns)
+            line_print(str(i) + '/' + str(file_count) + ': Preparing future to load: ' + filename)
 
         future = executor.submit(hdf5_loader_worker,  # the actual function i want to run. Args, see below
                                  filename,  # filename
@@ -130,46 +122,91 @@ def hdf5_loader(path: str, pattern: str = '_[A-Z][0-9]{2}_', suffix_data: str = 
                                  gp_max,  # gp_max
                                  normalize_enum,  # normalize_enum
                                  worker_verbose,  # verbose
-                                 terminal_columns  # terminal_columns
+                                 terminal_columns  # terminal_columns#
                                  )
         future_list.append(future)
 
+        # Running through the future list again to check if preivously added futures have already finished.
+        # On ProDi Server "Ehrlich", adding tasks is so slow, it might be more efficient to check even while adding futures. Wow.
+        for ft in future_list:
+            if ft.done():
+                e = ft.exception()
+                if e is None:
+                    _, _, prediction_future = ft.result()
+                    if prediction_future and skip_predicted:
+                        if verbose:
+                            print(
+                                '\n' + 'While adding tasks: Predicted well(s) already found!! Skipping this experiment.')
+                        executor.shutdown(wait=False)
+                        return None, None, None, True
+
     if verbose:
-        print(gct() + ' Loading ' + str(file_count) + ' label / data .h5 files on ' + str(
-            n_jobs) + ' thread(s)! Progress is indeterminable.\n')
+        print(gct() + ' Starting to read ' + str(file_count) + ' label / data .h5 files on ' + str(
+            n_jobs) + ' thread(s).')
     start_time = gct(raw=True)
     all_finished: bool = False
     executor.shutdown(wait=False)
 
     while not all_finished:
         finished_count = 0
+        predicted_count = 0
+        error_count = 0
+
         for future in future_list:
             if future.done():
                 finished_count = finished_count + 1
 
+                e = future.exception()
+                if e is None:
+                    _, _, prediction_future = future.result()
+                    if prediction_future:
+                        predicted_count = predicted_count + 1
+                else:
+                    error_count = error_count + 1
+
         if verbose:
-            line_print('['+str(gp_current)+' / '+str(gp_max)+'] Worker-Threads running. Finished: ' + str(finished_count) + '/' + str(
-                len(future_list)) + '. Running: ' + get_time_diff(start_time) + '. ' + gct(), max_width=terminal_columns)
+            line_print('[' + str(gp_current) + ' / ' + str(gp_max) + '] ' + str(
+                n_jobs) + ' Threads running. Finished: ' + str(finished_count) + '/' + str(
+                len(future_list)) + '. Already predicted: ' + str(predicted_count) + '. Errors: ' + str(
+                error_count) + '. Running: ' + get_time_diff(
+                start_time) + '. ' + gct(), max_width=terminal_columns)
         all_finished = finished_count == len(future_list)
         time.sleep(1)
+
+        if skip_predicted and predicted_count > 0:
+            if verbose:
+                print('\n' + str(predicted_count) + ' predicted well(s) found. Skipping this experiment.\n')
+            executor.shutdown(wait=False)
+            return None, None, None, True
 
     if verbose:
         print('\n' + gct() + ' Finished concurrent execution. Fetching results.')
 
     error_list = []
-    for future in future_list:
+    for i in range(len(future_list)):
+        future = future_list[i]
+        if verbose:
+            line_print('Extracting future: '+str(i)+'/'+str(len(future_list)))
+
         e = future.exception()
         if e is None:
-            X_w, y_w = future.result()
+            X_w, y_w, prediction_file = future.result()
             if X_w is not None:
                 X.extend(X_w)
             if y_w is not None:
                 y.extend(y_w)
         else:
-            print('Error extracting future results: ' +str(e))
+            print('\n' + gct() + 'Error extracting future results: ' + str(e)+'\n')
             error_list.append(e)
 
-    return X, y, error_list
+    if verbose:
+        print(gct() + ' Fully Finished Loading Path.')
+
+    # Deleting the futures and the future list to immediately releasing the memory.
+    del future_list[:]
+    del future_list
+
+    return X, y, error_list, False
 
 
 ###
@@ -178,6 +215,7 @@ def hdf5_loader_worker(filename: str, path: str, pattern: str, suffix_data: str,
                        gp_current: int, gp_max: int, normalize_enum: int, verbose: bool, terminal_columns: int):
     worker_x = None
     worker_y = None
+    prediction_file = False
     best_well_min = [255, 255, 255]
     best_well_max = [0, 0, 0]
     pattern = re.compile(pattern)
@@ -252,12 +290,16 @@ def hdf5_loader_worker(filename: str, path: str, pattern: str, suffix_data: str,
                 worker_x[j][2] = normalize_np(worker_x[j][2], best_well_min[2], best_well_max[2])
 
         # Done evaluating X file
+    elif filename.endswith('_prediction.csv'):
+        prediction_file = True
+        worker_x = None
+        worker_y = None
     else:
         worker_x = None
         worker_y = None
         # print("Unknown file type. Skipping: " + filename)
 
-    return worker_x, worker_y
+    return worker_x, worker_y, prediction_file
 
 
 ###
@@ -303,9 +345,10 @@ def multiple_hdf5_loader(path_list: [str], pattern: str = '_[A-Z][0-9]{2}_', suf
     if force_verbose:
         verbose = True
 
-    worker_threads = int((n_jobs-(l/2)) / l)
-    worker_threads = max(worker_threads,1)
-    print('Distributing '+str(l)+' managers with '+ str(worker_threads)+' workers each from a pool of '+str(n_jobs))
+    worker_threads = int((n_jobs - (l / 2)) / l)
+    worker_threads = max(worker_threads, 1)
+    print('Distributing ' + str(l) + ' managers with ' + str(worker_threads) + ' workers each from a pool of ' + str(
+        n_jobs))
 
     for path in path_list:
         print("Preparing to load dataset at: ", path)
@@ -319,6 +362,7 @@ def multiple_hdf5_loader(path_list: [str], pattern: str = '_[A-Z][0-9]{2}_', suf
                                  l,  # hdf5_loeader_default_param_gp_max
                                  normalize_enum,  # hdf5_loeader_default_param_normalize_enum
                                  worker_threads,  # n_jobs: int = 1
+                                 False,  # skip_predicted
                                  force_verbose  # hdf5_loeader_default_param_verbose
                                  )
         future_list.append(future)
@@ -332,12 +376,13 @@ def multiple_hdf5_loader(path_list: [str], pattern: str = '_[A-Z][0-9]{2}_', suf
     while not all_finished:
         finished_count = 0
         error_count = 0
+
         for future in future_list:
             if future.done():
                 finished_count = finished_count + 1
                 e = future.exception()
                 if e is None:
-                    _, _, errors = future.result()
+                    _, _, errors, _ = future.result()
                     error_count = error_count + len(errors)
                 else:
                     error_count = error_count + 1
@@ -345,10 +390,19 @@ def multiple_hdf5_loader(path_list: [str], pattern: str = '_[A-Z][0-9]{2}_', suf
         line_print('Loader-Manager Threads running. Finished: ' + str(finished_count) + '/' + str(
             len(future_list)) + '. Errors: ' + str(error_count) + '. Running: ' + get_time_diff(
             start_time) + '. ' + gct(), max_width=terminal_columns)
+
         all_finished = finished_count == len(future_list)
         time.sleep(1)
 
-    print('\n' + gct() + ' Finished concurrent execution in '+get_time_diff(start_time)+' minutes. Fetching results.')
+        # if predicted_count > 0 and skip_predicted:
+        #     print('Found an already predicted well. Skipping this experiment. Shutting down threads.')
+        #     all_finished = True
+
+        #     executor.shutdown(wait=False, cancel_futures=True)
+        #     return X_full, y_full, error_list, True
+
+    print(
+        '\n' + gct() + ' Finished concurrent execution in ' + get_time_diff(start_time) + ' minutes. Fetching results.')
 
     error_list = []
     for future in future_list:
@@ -367,7 +421,7 @@ def multiple_hdf5_loader(path_list: [str], pattern: str = '_[A-Z][0-9]{2}_', suf
             error_list.append(e)
 
     print(gct() + ' Finished Loading.')
-    return X_full, y_full, error_list
+    return X_full, y_full, error_list, False
 
 
 def line_print(text: str, max_width: int = None, cutoff_too_large_text: bool = True):
@@ -450,7 +504,7 @@ def count_uniques(ndarr):
     '''
     unique, counts = np.unique(ndarr, return_counts=True)
     result = dict(zip(unique, counts))
-    print(result)
+    print('Counting uinques: ' + str(result))
 
     return result
 

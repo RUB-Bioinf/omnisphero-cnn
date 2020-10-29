@@ -29,6 +29,9 @@ test_data_path_neuron_filter = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/tra
 test_data_path_oligo_filter_erneut = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_erneut_kontrolliert_test_filters/'
 test_data_path_neuron_filter_erneut = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_erneut_kontrolliert_test_filters/'
 
+test_data_path_oligo_erneut = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_erneut_kontrolliert_test/'
+test_data_path_neuron_erneut = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_erneut_kontrolliert_test/'
+
 test_data_path_oligo_withoutKB25 = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_test_woBK25/'
 test_data_path_neuron_withoutKB25 = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_test_woBK25/'
 
@@ -72,7 +75,7 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
 
     print('Loading test data: ' + test_data_path)
     y_test = np.empty((0, 1))
-    X_test, y_test, test_loading_errors = misc.hdf5_loader(test_data_path, gp_current=1, gp_max=1, normalize_enum=normalize_enum, n_jobs=n_jobs, force_verbose = True)
+    X_test, y_test, test_loading_errors,_ = misc.hdf5_loader(test_data_path, gp_current=1, gp_max=1, normalize_enum=normalize_enum, n_jobs=n_jobs, force_verbose = True)
     print('Finished loading test data.')
 
     print('Done. Preprocessing test data.')
@@ -294,8 +297,8 @@ def main():
     if neuron_mode:
         test_cnn(n1, test_data_path_neuron, normalize_enum, cuda_devices="0", label='cnn-debug-test')
     if debug_mode:
-        test_cnn(model_path_paper_neuron, test_data_path_neuron_filter_erneut, n_jobs=15, normalize_enum=4, cuda_devices="1", label='cnn-erneutKontrolliertFilter-test')
-        test_cnn(model_path_paper_oligo, test_data_path_oligo_filter_erneut, n_jobs=15, normalize_enum=4, cuda_devices="1", label='cnn-erneutKontrolliertFilter-test')
+        test_cnn(model_path_paper_neuron, test_data_path_neuron_erneut, n_jobs=15, normalize_enum=4, cuda_devices="1", label='cnn-erneutKontrolliert-test')
+        test_cnn(model_path_paper_oligo, test_data_path_oligo_erneut, n_jobs=15, normalize_enum=4, cuda_devices="1", label='cnn-erneutKontrolliert-test')
 
     print('Testing done.')
 

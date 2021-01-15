@@ -14,16 +14,19 @@ PROJECT: Omnisphero CNN
 # IMPORTS
 ########
 
+import io
 import os
 import random
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 
+from zipfile import ZipFile
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 from imblearn.over_sampling.smote import SMOTE
+from typing.re import Pattern
 
 from misc_cnn import gct, get_time_diff
 
@@ -44,7 +47,8 @@ hdf5_loeader_default_param_verbose: bool = True
 # FUNCTION DEFINITIONS
 #####################
 
-def hdf5_loader(path: str, pattern: str = '_[A-Z][0-9]{2}_', suffix_data: str = '.h5', suffix_label: str = '_label.h5',
+def hdf5_loader(path: str, pattern: str = '_[A-Z][0-9]{2}_', suffix_data: str = '.h5',
+                suffix_data_zipped: str = '.h5.zip', suffix_label: str = '_label.h5',
                 gp_current: int = 0, gp_max: int = 0, normalize_enum: int = 1, n_jobs: int = 1,
                 skip_predicted: bool = False, force_verbose: bool = False):
     '''Helper function which loads all datasets from a hdf5 file in
@@ -117,6 +121,7 @@ def hdf5_loader(path: str, pattern: str = '_[A-Z][0-9]{2}_', suffix_data: str = 
                                  path,  # path
                                  pattern,  # pattern
                                  suffix_data,  # suffix_data
+                                 suffix_data_zipped,  # suffix_data_zipped
                                  suffix_label,  # suffix_label
                                  gp_current,  # gp_current
                                  gp_max,  # gp_max
@@ -186,7 +191,7 @@ def hdf5_loader(path: str, pattern: str = '_[A-Z][0-9]{2}_', suffix_data: str = 
     for i in range(len(future_list)):
         future = future_list[i]
         if verbose:
-            line_print('Extracting future: '+str(i)+'/'+str(len(future_list)))
+            line_print('Extracting future: ' + str(i) + '/' + str(len(future_list)))
 
         e = future.exception()
         if e is None:
@@ -196,7 +201,7 @@ def hdf5_loader(path: str, pattern: str = '_[A-Z][0-9]{2}_', suffix_data: str = 
             if y_w is not None:
                 y.extend(y_w)
         else:
-            print('\n' + gct() + 'Error extracting future results: ' + str(e)+'\n')
+            print('\n' + gct() + 'Error extracting future results: ' + str(e) + '\n')
             error_list.append(e)
 
     if verbose:
@@ -211,17 +216,18 @@ def hdf5_loader(path: str, pattern: str = '_[A-Z][0-9]{2}_', suffix_data: str = 
 
 ###
 
-def hdf5_loader_worker(filename: str, path: str, pattern: str, suffix_data: str, suffix_label: str,
-                       gp_current: int, gp_max: int, normalize_enum: int, verbose: bool, terminal_columns: int):
+def hdf5_loader_worker(filename: str, path: str, pattern: str, suffix_data: str, suffix_data_zipped: str,
+                       suffix_label: str, gp_current: int, gp_max: int, normalize_enum: int, verbose: bool,
+                       terminal_columns: int):
     worker_x = None
     worker_y = None
     prediction_file = False
     best_well_min = [255, 255, 255]
     best_well_max = [0, 0, 0]
-    pattern = re.compile(pattern)
+    pattern: Pattern = re.compile(pattern)
 
     well_regex = "(\w\d+)_\d+$"
-    well_regex = re.compile(well_regex)
+    well_regex: Pattern = re.compile(well_regex)
 
     if filename.endswith(suffix_label):
         worker_y = []
@@ -236,48 +242,36 @@ def hdf5_loader_worker(filename: str, path: str, pattern: str, suffix_data: str,
                 worker_y.append(np.array(f[str(key)]))
             f.close()
         # done evaluating y file
+
+    elif filename.endswith(suffix_data_zipped):
+        worker_x = []
+
+        # handling the case, if a hdf5 file has been zipped
+        # The idea: Read the zip, unzip it in ram and parse the byte stream directly into the h5 constructor!
+        input_zip = ZipFile(path + os.sep + filename)
+        zipped_data_name = input_zip.namelist()[0]
+        data = input_zip.read(zipped_data_name)
+        f = h5py.File(data, 'r')
+        worker_x = read_hdf5_content(f, gp_current, gp_max, pattern, filename, well_regex, normalize_enum,
+                                     terminal_columns, verbose, best_well_max, best_well_min)
+        f.close()
+
+        if normalize_enum == 4:
+            for j in range(len(worker_x)):
+                if verbose:
+                    line_print('Normalizing well entry ' + str(j) + ' / ' + str(
+                        len(worker_x)), max_width=terminal_columns)
+                worker_x[j][0] = normalize_np(worker_x[j][0], best_well_min[0], best_well_max[0])
+                worker_x[j][1] = normalize_np(worker_x[j][1], best_well_min[1], best_well_max[1])
+                worker_x[j][2] = normalize_np(worker_x[j][2], best_well_min[2], best_well_max[2])
+
+        del data
+
     elif filename.endswith(suffix_data) and not filename.endswith(suffix_label):
         worker_x = []
         with h5py.File(path + os.sep + filename, 'r') as f:
-            key_list = list(f.keys())
-            key_list.sort(key=lambda a: int(re.split(pattern, a)[1]))
-
-            for k in range(len(key_list)):
-                key = key_list[k]
-                # print("Loading dataset associated with key ", str(key))
-                current_well = re.split(well_regex, key)[1]
-
-                if verbose:
-                    line_print("Reading data file: " + filename + " - Current dataset key: " + str(
-                        key) + " Well: " + current_well + " [" + str(gp_current) + "/" + str(gp_max) + "]",
-                               max_width=terminal_columns)
-
-                current_x = np.array(f[str(key)])
-                if normalize_enum == 0:
-                    pass
-                elif normalize_enum == 1:
-                    current_x = normalize_np(current_x, 0, 255)
-                elif normalize_enum == 2:
-                    current_x[0] = normalize_np(current_x[0], current_x[0].min(), current_x[0].max())
-                    current_x[1] = normalize_np(current_x[1], current_x[1].min(), current_x[1].max())
-                    current_x[2] = normalize_np(current_x[2], current_x[2].min(), current_x[2].max())
-                elif normalize_enum == 3:
-                    current_x[0] = normalize_np(current_x[0], current_x.min(), current_x.max())
-                    current_x[1] = normalize_np(current_x[1], current_x.min(), current_x.max())
-                    current_x[2] = normalize_np(current_x[2], current_x.min(), current_x.max())
-                elif normalize_enum == 4:
-                    best_well_max[0] = max(best_well_max[0], current_x[0].max())
-                    best_well_max[1] = max(best_well_max[1], current_x[1].max())
-                    best_well_max[2] = max(best_well_max[2], current_x[2].max())
-
-                    best_well_min[0] = min(best_well_min[0], current_x[0].min())
-                    best_well_min[1] = min(best_well_min[1], current_x[1].min())
-                    best_well_min[2] = min(best_well_min[2], current_x[2].min())
-                    # TODO: Implement
-                else:
-                    raise Exception('Undefined state of normalize_enum')
-
-                worker_x.append(np.array(current_x))
+            worker_x = read_hdf5_content(f, gp_current, gp_max, pattern, filename, well_regex,normalize_enum,
+                                         terminal_columns, verbose, best_well_max, best_well_min)
             f.close()
 
         if normalize_enum == 4:
@@ -301,6 +295,50 @@ def hdf5_loader_worker(filename: str, path: str, pattern: str, suffix_data: str,
 
     return worker_x, worker_y, prediction_file
 
+
+def read_hdf5_content(f: h5py.File, gp_current, gp_max, pattern: Pattern, filename, well_regex: Pattern,
+                      normalize_enum: int, terminal_columns: int, verbose: bool, best_well_max, best_well_min):
+    key_list = list(f.keys())
+    key_list.sort(key=lambda a: int(re.split(pattern, a)[1]))
+    worker_x = []
+
+    for k in range(len(key_list)):
+        key = key_list[k]
+        # print("Loading dataset associated with key ", str(key))
+        current_well = re.split(well_regex, key)[1]
+
+        if verbose:
+            line_print("Reading data file: " + filename + " - Current dataset key: " + str(
+                key) + " Well: " + current_well + " [" + str(gp_current) + "/" + str(gp_max) + "]",
+                       max_width=terminal_columns)
+
+        current_x = np.array(f[str(key)])
+        if normalize_enum == 0:
+            pass
+        elif normalize_enum == 1:
+            current_x = normalize_np(current_x, 0, 255)
+        elif normalize_enum == 2:
+            current_x[0] = normalize_np(current_x[0], current_x[0].min(), current_x[0].max())
+            current_x[1] = normalize_np(current_x[1], current_x[1].min(), current_x[1].max())
+            current_x[2] = normalize_np(current_x[2], current_x[2].min(), current_x[2].max())
+        elif normalize_enum == 3:
+            current_x[0] = normalize_np(current_x[0], current_x.min(), current_x.max())
+            current_x[1] = normalize_np(current_x[1], current_x.min(), current_x.max())
+            current_x[2] = normalize_np(current_x[2], current_x.min(), current_x.max())
+        elif normalize_enum == 4:
+            best_well_max[0] = max(best_well_max[0], current_x[0].max())
+            best_well_max[1] = max(best_well_max[1], current_x[1].max())
+            best_well_max[2] = max(best_well_max[2], current_x[2].max())
+
+            best_well_min[0] = min(best_well_min[0], current_x[0].min())
+            best_well_min[1] = min(best_well_min[1], current_x[1].min())
+            best_well_min[2] = min(best_well_min[2], current_x[2].min())
+        else:
+            raise Exception('Undefined state of normalize_enum')
+
+        worker_x.append(np.array(current_x))
+
+    return worker_x
 
 ###
 

@@ -284,21 +284,42 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
 def main():
     oligo_mode = False
     neuron_mode = False
+
     debug_mode = True
+    paper_mode = True
 
     o1 = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/training/debug/paper-final_datagen/oligo-old/'
     n1 = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/training/debug/paper-final_datagen/neuron/'
     db = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/training/debug/paper-debug-smote/oligo-debug/'
 
+    # Paper Individuum Test
+    # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_val_PaperIndividuum1/'
+
+    pi1 = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_test_PaperIndividuum1/'
+    pi2 = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_test_PaperIndividuum2/'
+    pi3 = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_test_PaperIndividuum3/'
+    paper_individuum_model = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/training/debug/paper-final_datagen/neuron_kontrolliert_PaperIndividuum2/'
+
     print("Running CNN test.")
+
+    if paper_mode:
+        test_cnn('/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/debug/paper-final_datagen/oligo-normalize0/', test_data_path_oligo_filter_erneut, normalize_enum=0, cuda_devices="0", label='cnn-normalize-redo',n_jobs=22)
+        test_cnn('/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/debug/paper-final_datagen/oligo-normalize1/', test_data_path_oligo_filter_erneut, normalize_enum=1, cuda_devices="0", label='cnn-normalize-redo',n_jobs=22)
+        test_cnn('/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/debug/paper-final_datagen/oligo-normalize2/', test_data_path_oligo_filter_erneut, normalize_enum=2, cuda_devices="0", label='cnn-normalize-redo',n_jobs=22)
+        test_cnn('/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/debug/paper-final_datagen/oligo-normalize3/', test_data_path_oligo_filter_erneut, normalize_enum=3, cuda_devices="0", label='cnn-normalize-redo',n_jobs=22)
+        test_cnn('/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/debug/paper-final_datagen/oligo-normalize4/', test_data_path_oligo_filter_erneut, normalize_enum=4, cuda_devices="0", label='cnn-normalize-redo',n_jobs=22)
+
+        return
+
     if oligo_mode:
         # test_cnn(o1, test_data_path_oligo, normalize_enum, img_dpi, cuda_devices, True, label='cnn-test')
         test_cnn(o1, test_data_path_oligo, normalize_enum, cuda_devices="0", label='cnn-debug-test')
     if neuron_mode:
         test_cnn(n1, test_data_path_neuron, normalize_enum, cuda_devices="0", label='cnn-debug-test')
     if debug_mode:
-        test_cnn(model_path_paper_neuron, test_data_path_neuron_erneut, n_jobs=15, normalize_enum=4, cuda_devices="1", label='cnn-erneutKontrolliert-test')
-        test_cnn(model_path_paper_oligo, test_data_path_oligo_erneut, n_jobs=15, normalize_enum=4, cuda_devices="1", label='cnn-erneutKontrolliert-test')
+        test_cnn(paper_individuum_model, pi1, n_jobs=15, normalize_enum=4, cuda_devices="3", label='cnn-individuum1-test')
+        test_cnn(paper_individuum_model, pi2, n_jobs=15, normalize_enum=4, cuda_devices="3", label='cnn-individuum2-test')
+        test_cnn(paper_individuum_model, pi3, n_jobs=15, normalize_enum=4, cuda_devices="3", label='cnn-individuum3-test')
 
     print('Testing done.')
 

@@ -7,8 +7,11 @@ Joshua Butke
 # IMPORTS
 #########
 
+import sys
 import pandas as pd
 from keras.models import load_model
+import getpass
+import socket
 
 # Custom Module
 ###############
@@ -29,10 +32,10 @@ model_source_path_neuron = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/
 # MODELS TO BE VALIDATED
 # modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/oligo_fieldTest_WObrightness_longer/0_custom/'
 
-source_dir_oligo = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/oligo_6/'
-source_dir_neuron = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/neuron_6/'
+source_dir_oligo = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/oligo_14/'
+source_dir_neuron = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/neuron_14/'
 
-source_dir_paper_redo_oligo = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/oligo_6/'
+source_dir_paper_redo_oligo  = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/oligo_6/'
 source_dir_paper_redo_neuron = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/neuron_6/'
 
 # ######### To validate, use these whole well experiments: #########
@@ -63,6 +66,16 @@ def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int =
     print('Data to predict: ' + source_dir)
     print(' == #### ===')
     time.sleep(4)
+
+    f = open(source_dir + os.sep + 'protocoll.txt', 'w')
+    f.write('Host: '+str(getpass.getuser())+'\n')
+    f.write('User: '+str(socket.gethostname())+'\n')
+    f.write('Timestamp: '+gct()+'\n\n')
+    f.write('Model path: '+model_source_path+'\n')
+    f.write('GPUs: '+gpu_index_string+'\n')
+    f.write('Skip predicted: '+str(skip_predicted)+'\n')
+    f.write('Normalize enum: '+str(normalize_enum)+'\n')
+    f.close()
 
     gpu_indexes = list(gpu_index_string.replace(",", ""))
     gpu_index_count = len(gpu_indexes)
@@ -191,7 +204,7 @@ def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int =
                     # TODO display error and stacktrace
                     try:
                         error_filename = path_to_csv + os.sep + split_name + '-error.txt'
-                        ef = open(error_filename)
+                        ef = open(error_filename,'w')
                         ef.write(str(e))
                         ef.close()
 
@@ -237,22 +250,52 @@ def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int =
         #    print('Too many labels predicted. Histogram skipped.')
 
 
-def main():
+def main(args):
+    print('Number of arguments:', len(args), 'arguments.')
+    print('Argument List:', str(args))
+
+    custom_paths = False;
+    for arg in args:
+        arg = str(arg).lower()
+        print('Evaluating arg: "'+arg+'".')
+
+        if arg == '-p' or arg == '-paths':
+            custom_paths = True
+
+    if custom_paths:
+        custom_paths_predict()
+    else:
+        prodi_gpu_predict()
+
+def custom_paths_predict():
+    print('Type in your the absolute path your model is located in:');
+    model_source_path = input1 = input();
+    print('Your input: '+model_source_path);
+
+
+    pass
+
+
+def prodi_gpu_predict():
+    print('Running Predictions.')
     use_oligo = False
     use_neuron = True
 
     use_debug = False
     use_paper = True
     skip_predicted = True
-    n_jobs: int = 40
+    n_jobs: int = 20
 
     # Paper Models trained for N4
     model_source_path_oligo_paper = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/training/debug/paper-final_datagen/oligo-normalize4/'
     model_source_path_neuron_paper = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/training/debug/paper-final_datagen/neuron-normalize4/'
 
     # .h dirs to be predicted for the paper
-    source_dir_redo_paper_oligo = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_paper_r2/'
-    source_dir_redo_paper_neuron = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_paper_r2/'
+    source_dir_redo_paper_oligo = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_paper/'
+    source_dir_redo_paper_neuron = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_paper/rosi/'
+
+    # source_dir_redo_paper_oligo  = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/oligo_13/'
+    # source_dir_redo_paper_neuron = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/neuron_13/'
 
     if use_paper:
         if use_neuron:
@@ -301,4 +344,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    args = sys.argv[1:]
+    main(args)

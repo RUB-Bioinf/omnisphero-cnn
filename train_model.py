@@ -19,6 +19,10 @@ from keras.utils import multi_gpu_model
 from keras_preprocessing.image import ImageDataGenerator
 from sklearn.model_selection import train_test_split
 from sklearn.utils.class_weight import compute_class_weight
+from imblearn.under_sampling import NearMiss
+
+import getpass
+import socket
 
 # Custom Imports
 import misc_cnn
@@ -248,11 +252,48 @@ debug_oligos_validation = [
     '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_debug_val/'
 ]
 
-# Initiating dummy variables
-# X = 0
-# y = 0
-# model = 0
-# TODO delete this?
+# Training only on Individuum 1
+
+paper_individuum_path_train = [
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_PaperIndividuum1/ELS79_BIS-I_NPC2-5_062_trainingData_neuron',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_PaperIndividuum1/ELS81_trainingData_neuron',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_PaperIndividuum1/ESM9_trainingData_neuron',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_PaperIndividuum1/FJK125_trainingData_neuron',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_PaperIndividuum1/FJK130_trainingData_neuron',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_PaperIndividuum1/JK122_trainingData_neuron'
+]
+paper_individuum_path_val = [
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_val_PaperIndividuum1/']
+
+# Training with Bleedthrough Experiments
+
+neuron_paper_bleedthrough_path_train = [
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_bleedthrough/EKB5_trainingData_neuron',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_bleedthrough/ELS79_BIS-I_NPC2-5_062_trainingData_neuron',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_bleedthrough/ESM9_trainingData_neuron',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_bleedthrough/ESM49_trainingData_neuron',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_bleedthrough/JK122_trainingData_neuron',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_bleedthrough/JK242_trainingData_neuron',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_bleedthrough/MP149_trainingData_neuron',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_bleedthrough/ELS470_trainingData_neuron'
+]
+neuron_paper_bleedthrough_path_val = [
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_val_bleedthrough/']
+neuron_paper_bleedthrough_path_test = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_test_bleedthrough/'
+
+oligo_paper_bleedthrough_path_train = [
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_bleedthrough/EKB5_trainingData_oligo',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_bleedthrough/ELS79_BIS-I_NPC2-5_062_trainingData_oligo',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_bleedthrough/ESM9_trainingData_oligo',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_bleedthrough/ESM49_trainingData_oligo',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_bleedthrough/JK122_trainingData_oligo',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_bleedthrough/JK242_trainingData_oligo',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_bleedthrough/MP149_trainingData_oligo',
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_bleedthrough/ELS470_trainingData_oligo',
+]
+oligo_paper_bleedthrough_path_val = [
+    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_val_bleedthrough/']
+oligo_paper_bleedthrough_path_test = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_test_bleedthrough/'
 
 #####################################################################
 
@@ -361,7 +402,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
                 input_height: int = input_height, input_width: int = input_width, input_depth: int = input_depth,
                 data_format: str = data_format, epochs: int = epochs,
                 # optimizer params
-                optimizer=optimizer, sgd_momentum: float = 0.9, sgd_nesterov: bool = False, metrics=metrics,
+                optimizer=optimizer, sgd_momentum: float = None, sgd_nesterov: bool = False, metrics=metrics,
                 learn_rate: int = learn_rate,
                 # multi-threadding
                 n_jobs: int = 1, single_thread_loading: bool = False,
@@ -369,15 +410,19 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
                 data_gen: ImageDataGenerator = None, use_SMOTE: bool = False,
                 # Training data split params
                 split_proportion: float = None, split_stratify: bool = False,
+                # undersampling params
+                # See: https://machinelearningmastery.com/undersampling-algorithms-for-imbalanced-classification/
+                under_sample_train_data: bool = False, under_sample_val_data: bool = False,
+                under_sampling_mode: int = 4,
                 # misc params
-                gpu_index_string: str = gpu_index_string, p_allow_growth:bool=p_allow_growth,
+                gpu_index_string: str = gpu_index_string, p_allow_growth: bool = p_allow_growth,
                 img_dpi: int = img_dpi_default,
                 example_sample_count: int = 25,
                 label: str = None, global_progress_current: int = 1, global_progress_max: int = 1):
     # Creating specific out dirs
 
     # Importing Tensorflow and setting the session & GPU Management
-    os.environ["CUDA_VISIBLE_DEVICES"]=gpu_index_string
+    os.environ["CUDA_VISIBLE_DEVICES"] = gpu_index_string
     gpu_indexes = list(gpu_index_string.replace(",", ""))
     gpu_index_count = len(gpu_indexes)
     print("Visible GPUs: '" + gpu_index_string + "'. Count: " + str(gpu_index_count))
@@ -388,7 +433,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     # Keras session growth
     if p_allow_growth:
         print('CUDA GPU Mem Allocation Growth enabled!')
-    
+
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True  # dynamically grow the memory used on the GPU
         config.log_device_placement = True  # to log device placement (on which device the operation ran)
@@ -397,7 +442,6 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
         # Code snipit credit: https://kobkrit.com/using-allow-growth-memory-option-in-tensorflow-and-keras-dc8c8081bc96
     else:
         print('CUDA GPU Mem Allocation Growth disabled! Hogging all the memory for myself!')
-
 
     print('Saving results here: ' + out_path)
     os.makedirs(out_path, exist_ok=True)
@@ -409,7 +453,15 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     has_lr_adjusting_optimizer = True
     if optimizer == 'SGD':
         has_lr_adjusting_optimizer = False
-        optimizer = SGD(lr=learn_rate, momentum=sgd_momentum, nesterov=sgd_nesterov)
+        if sgd_momentum is None or sgd_nesterov is None:
+            optimizer = SGD(lr=learn_rate)
+            sgd_nesterov = 'Default'
+            sgd_momentum = 'Default'
+            print('Using SGD with default parameters.')
+        else:
+            optimizer = SGD(lr=learn_rate, momentum=sgd_momentum, nesterov=sgd_nesterov)
+            print(
+                'Using SGD with custom parameters. Momentum: ' + str(sgd_momentum) + '. Nesterov: ' + str(sgd_nesterov))
     else:
         sgd_nesterov = 'N / A'
         sgd_momentum = 'N / A'
@@ -442,9 +494,10 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     # TRAINING DATA
     ###############
     print("Loading training data. Folder count: " + str(len(training_path_list)))
-    X, y, training_loading_errors,_ = multiple_hdf5_loader(training_path_list, gp_current=global_progress_current, gp_max=global_progress_max,
-                                   normalize_enum=normalize_enum, n_jobs=n_jobs,
-                                   single_thread_loading=single_thread_loading)  # load datasets
+    X, y, training_loading_errors, _ = multiple_hdf5_loader(training_path_list, gp_current=global_progress_current,
+                                                            gp_max=global_progress_max,
+                                                            normalize_enum=normalize_enum, n_jobs=n_jobs,
+                                                            single_thread_loading=single_thread_loading)  # load datasets
 
     if n_classes == 2:
         y = np.append(y, 1 - y, axis=1)
@@ -457,13 +510,33 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     y = y.astype(np.int)
     print("X-shape (corrected): " + str(X.shape))
 
+    print('Training==0 count: ' + str(np.count_nonzero(y == 0)))
+    print('Training==1 count: ' + str(np.count_nonzero(y == 1)))
+
+    if np.count_nonzero(y == 0) + np.count_nonzero(y == 1) == 0:
+        print('Error! No training data has been loaded!')
+        return
+
     minority_count = min(np.count_nonzero(y == 1), np.count_nonzero(y == 0))
     k_neighbors = int(min(max(int(minority_count / 25) + 1, 150), minority_count / 2))
-    print('Minority count for smote: ' + str(minority_count) + '. k_neighbour candidates: ' + str(
+    n_samples, n_x, n_y, n_z = X.shape
+    print('Minority count for over- / undersampling: ' + str(minority_count) + '. k_neighbour candidates: ' + str(
         int(minority_count * 0.25)) + '. Actually: ' + str(k_neighbors))
 
-    print('SMOTE mode: ' + str(use_SMOTE))
-    n_samples, n_x, n_y, n_z = X.shape
+    # UNDERSAMPLING TRAINING DATA
+    undersampling_train_out_file = out_path + 'undersampling_train.txt'
+    if under_sample_train_data:
+        print('Undersampling training data using mode: ' + str(under_sampling_mode))
+        if under_sampling_mode == 4:
+            X, y = misc_cnn.under_sample_randomly(X=X, y=y, out_file_name=undersampling_train_out_file)
+        else:
+            X, y = misc_cnn.under_sample_near_miss(X=X, y=y, k_neighbors=3,
+                                                   under_sampling_mode=under_sampling_mode,
+                                                   out_file_name=undersampling_train_out_file)
+    else:
+        f = open(undersampling_train_out_file, 'w')
+        f.write('Not undersampling training data.')
+        f.close()
 
     # TRAIN TEST SPLIT
     ###############
@@ -506,12 +579,13 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     ###############
     smote_params: str = 'No SMOTE used'
     smote_error_text = 'N/A.'
+    print('SMOTE mode: ' + str(use_SMOTE))
     if use_SMOTE:
         # Smote for image classification: https://medium.com/swlh/how-to-use-smote-for-dealing-with-imbalanced-image-dataset-for-solving-classification-problems-3aba7d2b9cad
         # TODO out-sorce this as an independent function?
 
         smote_error_text = 'None. All went well.'
-        smh = create_SMOTE_handler(n_jobs=n_jobs, k_neighbors=k_neighbors)
+        smh = create_smote_handler(n_jobs=n_jobs, k_neighbors=k_neighbors)
         smote_params = str(smh.get_params())
         smote_out_file = out_path + 'smote_progress.txt'
         f = open(smote_out_file, 'w')
@@ -534,7 +608,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
             new_samples = X_smote.shape[0]
 
             f.write('Finished time: ' + gct() + '\n')
-            f.write('Runtime: '+get_time_diff(smote_start_time))
+            f.write('Runtime: ' + get_time_diff(smote_start_time))
             f.write('X_smote shape: ' + str(X_smote.shape) + '\n')
             f.write('y_smote shape: ' + str(y_smote.shape) + '\n')
             f.write('New class 0 count: ' + str(np.count_nonzero(y_smote == 0)) + '\n')
@@ -557,7 +631,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
             new_samples = np.nan
             f.write('\nError! -> ' + smote_error_text)
 
-        print('Running smote took: '+get_time_diff(smote_start_time))
+        print('Running smote took: ' + get_time_diff(smote_start_time))
         try:
             save_smote_samples(X_smote, y_smote, n_samples, new_samples, augment_smote_path,
                                out_samples=k_neighbors + 5)
@@ -593,11 +667,11 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     # VALIDATION DATA
     #################
     print("Loading validation data. Source folder count: " + str(len(validation_path_list)))
-    X_val, y_val, val_loading_errors = multiple_hdf5_loader(validation_path_list, gp_current=global_progress_current,
-                                           gp_max=global_progress_max,
-                                           normalize_enum=normalize_enum,
-                                           single_thread_loading=single_thread_loading,
-                                           n_jobs=n_jobs)
+    X_val, y_val, val_loading_errors, _ = multiple_hdf5_loader(validation_path_list, gp_current=global_progress_current,
+                                                               gp_max=global_progress_max,
+                                                               normalize_enum=normalize_enum,
+                                                               single_thread_loading=single_thread_loading,
+                                                               n_jobs=n_jobs)
     print("Validation data shape: " + str(y_val.shape))
     if n_classes == 2:
         y_val = np.append(y_val, 1 - y_val, axis=1)
@@ -607,10 +681,16 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     y_val_class2_size = len(y_val[y_val == 1])
     y_train_class1_size = len(y[y == 0])
     y_train_class2_size = len(y[y == 1])
+    print('Validation==0 count: ' + str(np.count_nonzero(y_val == 0)))
+    print('Validation==1 count: ' + str(np.count_nonzero(y_val == 1)))
 
     print("Loaded validation data has shape: ")
     print("X_val shape: " + str(X_val.shape))
     print("y_val shape: " + str(y_val.shape))
+
+    if np.count_nonzero(y_val == 0) + np.count_nonzero(y_val == 1) == 0:
+        print('Error! No validation data has been loaded!')
+        return
 
     print("Correcting axes...")
     X_val = np.moveaxis(X_val, 1, 3)
@@ -618,6 +698,8 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     y_val = y_val.astype(np.int)
     print("X_val corrected shape: " + str(X_val.shape))
     print("y_val corrected shape: " + str(y_val.shape))
+
+    # DATA SPLITTING
 
     split_out_file_val = out_path + 'data_splitting_val.txt'
     f = open(split_out_file_val, 'w')
@@ -644,10 +726,24 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
         X_split = None
     else:
         f.write('Not merging.')
-
     f.close()
 
-    # CONSTRUCTION
+    # UNDERSAMPLING VALIDATION DATA
+    undersampling_val_out_file = out_path + 'undersampling_val.txt'
+    if under_sample_val_data:
+        print('Undersampling validation data using version: ' + str(under_sampling_mode))
+        if under_sampling_mode == 4:
+            X, y = misc_cnn.under_sample_randomly(X=X, y=y, out_file_name=undersampling_train_out_file)
+        else:
+            X_val, y_val = misc_cnn.under_sample_near_miss(X=X_val, y=y_val, k_neighbors=3,
+                                                           under_sampling_mode=under_sampling_mode,
+                                                           out_file_name=undersampling_val_out_file)
+    else:
+        f = open(undersampling_val_out_file, 'w')
+        f.write('Not undersampling validation data.')
+        f.close()
+
+    # MODEL CONSTRUCTION
     ##############
     steps_per_epoch = math.nan
     print("Building model...")
@@ -682,11 +778,13 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     if data_gen is not None:
         data_gen_description = 'Used: ' + str(data_gen)
 
+    f.write('Host: '+str(getpass.getuser())+'\n')
+    f.write('User: '+str(socket.gethostname())+'\n')
     f.write('Training start time: ' + gct() + '\n')
     f.write('Model: ' + str(model) + '\n')
     if label is not None:
         f.write('Label: ' + label + '\n')
-    f.write('Loss: ' + lossEnum + '\n')
+    f.write('Loss Function: ' + lossEnum + '\n')
     f.write('GPUs: ' + gpu_index_string + '\n')
     f.write('Steps per epoch: ' + str(steps_per_epoch) + '\n')
     f.write('Model shape: ' + str(model.output_shape) + '\n')
@@ -709,6 +807,8 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     f.write('SMOTE Error: ' + smote_error_text + '\n')
     f.write('Train-Test Split: Proportions: ' + str(split_proportion) + '\n')
     f.write('Train-Test Split: Stragize: ' + str(split_stratify) + '\n')
+    f.write('Under-sample Training data: ' + str(under_sample_train_data) + '\n')
+    f.write('Under-sample Validation data: ' + str(under_sample_val_data) + '\n')
 
     f.write('\n == DATA: ==\n')
     f.write("X shape: " + str(X.shape) + '\n')
@@ -761,8 +861,12 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     f.close()
 
     if example_sample_count > 0:
-        save_random_samples(X, y, count=example_sample_count, path=sample_path + os.sep + 'train' + os.sep)
-        save_random_samples(X_val, y_val, count=example_sample_count, path=sample_path + os.sep + 'val' + os.sep)
+        try:
+            save_random_samples(X, y, count=example_sample_count, path=sample_path + os.sep + 'train' + os.sep)
+            save_random_samples(X_val, y_val, count=example_sample_count, path=sample_path + os.sep + 'val' + os.sep)
+        except Exception as e:
+            print(gct() + " Failed random samples! Error type:")
+            print(e)
 
     # CALLBACKS
     ###########
@@ -874,7 +978,8 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
 
     try:
         print('Test started')
-        test_cnn(out_path, test_data_path, normalize_enum, img_dpi, gpu_index_string, True, label='train-test',n_jobs=n_jobs)
+        test_cnn(out_path, test_data_path, normalize_enum, img_dpi, gpu_index_string, True, label='train-test',
+                 n_jobs=n_jobs)
         print('Test finished')
     except Exception as e:
         print(gct() + " Failed to execute CNN TEST! Error type:")
@@ -882,10 +987,10 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
         # TODO print stacktrace
 
         try:
-            #Printing the error message as a file.
-            ef = open(out_path+os.sep+'test_error.txt','w');
-            ef.write(gct()+'\n')
-            ef.write('Fatal error: '+str(e))
+            # Printing the error message as a file.
+            ef = open(out_path + os.sep + 'test_error.txt', 'w');
+            ef.write(gct() + '\n')
+            ef.write('Fatal error: ' + str(e))
             ef.close()
         except Exception as e2:
             print(gct() + " Even failed to save the error to a file!!")
@@ -1050,8 +1155,8 @@ def main():
 
     out_path_oligo_debug = out_path_base + 'oligo_debug' + os.sep
 
-    oligo_mode = False
-    neuron_mode = True
+    oligo_mode = True
+    neuron_mode = False
     debug_mode = False
     n_jobs = 40
 
@@ -1065,41 +1170,51 @@ def main():
             test_data_path='/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_test/',
             # data_gen=data_gen,
             use_SMOTE=False,
-            out_path=out_path + 'paper-final_SGD' + os.sep + 'oligo-split-debug-concurrent3' + os.sep,
+            out_path=out_path + 'paper-final_datagen' + os.sep + 'neuron_kontrolliert_undersampled' + os.sep,
             gpu_index_string="3",
-            optimizer='adam',
-            split_proportion=0.2,
-            n_jobs=19,
-            epochs=10
+            optimizer='SGD',
+            normalize_enum=4,
+            under_sample_train_data=True, under_sample_val_data=True,
+            epochs=5,
+            n_jobs=25
         )
+        return
 
     if oligo_mode:
         train_model(
             training_path_list=final_oligos_validated,
             validation_path_list=final_oligos_validated_validation_set,
             test_data_path=test_data_path_oligo,
-            data_gen=data_gen,
+            # training_path_list=oligo_paper_bleedthrough_path_train,
+            # validation_path_list=oligo_paper_bleedthrough_path_val,
+            # test_data_path=oligo_paper_bleedthrough_path_test,
+            # data_gen=data_gen,
             use_SMOTE=False,
-            out_path=out_path + 'paper-final_datagen' + os.sep + 'oligo-normalize3' + os.sep,
-            normalize_enum=0,
-            gpu_index_string="3",
+            out_path=out_path + 'paper-final_datagen' + os.sep + 'oligo-normalize4-undersampling' + os.sep,
+            under_sample_train_data=True, under_sample_val_data=True,
+            gpu_index_string="1",
             optimizer='SGD',
+            n_jobs=n_jobs,
             epochs=5000
         )
 
-    #paper-final_no-datagen\neuron
+    # paper-final_no-datagen\neuron
     if neuron_mode:
         train_model(
             training_path_list=final_neurons_validated,
             validation_path_list=final_neurons_validated_validation_set,
             test_data_path=test_data_path_neuron,
-            data_gen=data_gen,
-            use_SMOTE=True,
-            out_path=out_path + 'paper-final_datagen' + os.sep + 'neuron-normalize4-concurrentSMOTE' + os.sep,
+            # training_path_list=neuron_paper_bleedthrough_path_train,
+            # validation_path_list=neuron_paper_bleedthrough_path_val,
+            # test_data_path=neuron_paper_bleedthrough_path_test,
+            # data_gen=data_gen,
+            use_SMOTE=False,
+            out_path=out_path + 'paper-final_datagen' + os.sep + 'neuron-normalize4-undersampling' + os.sep,
+            under_sample_train_data=True, under_sample_val_data=True,
             normalize_enum=4,
             gpu_index_string="0",
-            n_jobs=30,
             optimizer='SGD',
+            n_jobs=n_jobs,
             epochs=5000
         )
 

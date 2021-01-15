@@ -5,6 +5,8 @@ import time
 from datetime import datetime
 
 import matplotlib.pyplot as plt
+import numpy as np
+from imblearn.under_sampling import NearMiss, RandomUnderSampler
 from keras.callbacks import Callback
 
 
@@ -271,6 +273,81 @@ def get_time_diff(start_time: datetime):
     if minutes[1] < 10:
         s = '0' + s
     return m + ':' + s
+
+
+def under_sample_randomly(X, y, out_file_name: str):
+    print(gct()+' Undersampling randomly.')
+    n_samples, n_x, n_y, n_z = X.shape
+    f = open(out_file_name, 'w')
+
+    f.write('Read y==0 count: ' + str(np.count_nonzero(y == 0)) + '\n')
+    f.write('Read y==1 count: ' + str(np.count_nonzero(y == 1)) + '\n')
+    f.write('Read X Shape: ' + str(X.shape) + '\n')
+    f.write('Read y Shape: ' + str(y.shape) + '\n')
+
+    under_sampler = RandomUnderSampler()
+    f.write('Undersampler: ' + str(under_sampler)+'\n')
+
+    print(gct()+' Reshaping classes....')
+    under_X = X.reshape(X.shape[0], -1)
+    under_y = y.ravel()
+    del X
+    del y
+
+    print(gct()+' Undersampling....')
+    under_X, under_y = under_sampler.fit_sample(under_X, under_y)
+
+    print(gct()+' Re-Reshaping classes....')
+    under_X = under_X.reshape(under_X.shape[0], n_x, n_y, n_z)
+    under_y = under_y[:, np.newaxis]
+
+    print('Undersampled y==0 count: ' + str(np.count_nonzero(under_y == 0)))
+    print('Undersampled y==1 count: ' + str(np.count_nonzero(under_y == 1)))
+    print('Undersampled X Shape: ' + str(under_X.shape))
+    print('Undersampled y Shape: ' + str(under_y.shape))
+    f.write('Undersampled y==0 count: ' + str(np.count_nonzero(under_y == 0)) + '\n')
+    f.write('Undersampled y==1 count: ' + str(np.count_nonzero(under_y == 1)) + '\n')
+    f.write('Undersampled X Shape: ' + str(under_X.shape) + '\n')
+    f.write('Undersampled y Shape: ' + str(under_y.shape) + '\n')
+
+    f.close()
+    return under_X, under_y
+
+def under_sample_near_miss(X, y, k_neighbors: int, under_sampling_mode: int, out_file_name: str):
+    print('Undersampling using "Near Miss"-Method.')
+    n_samples, n_x, n_y, n_z = X.shape
+    f = open(out_file_name, 'w')
+
+    f.write('Read y==0 count: ' + str(np.count_nonzero(y == 0)) + '\n')
+    f.write('Read y==1 count: ' + str(np.count_nonzero(y == 1)) + '\n')
+    f.write('Read X Shape: ' + str(X.shape) + '\n')
+    f.write('Read y Shape: ' + str(y.shape) + '\n')
+    f.write('Undersampling version: ' + str(under_sampling_mode) + '\n')
+    f.write('Undersampling k_neighbors: ' + str(k_neighbors) + '\n')
+
+    under_sampler = NearMiss(version=under_sampling_mode, n_neighbors_ver3=k_neighbors)
+    f.write('Undersampler: ' + str(under_sampler)+'\n')
+
+    under_X = X.reshape(X.shape[0], -1)
+    under_y = y.ravel()
+    del X
+    del y
+
+    under_X, under_y = under_sampler.fit_sample(under_X, y)
+    under_X = under_X.reshape(under_X.shape[0], n_x, n_y, n_z)
+    under_y = under_y[:, np.newaxis]
+
+    print('Undersampled y==0 count: ' + str(np.count_nonzero(under_y == 0)))
+    print('Undersampled y==1 count: ' + str(np.count_nonzero(under_y == 1)))
+    print('Undersampled X Shape: ' + str(under_X.shape))
+    print('Undersampled y Shape: ' + str(under_y.shape))
+    f.write('Undersampled y==0 count: ' + str(np.count_nonzero(under_y == 0)) + '\n')
+    f.write('Undersampled y==1 count: ' + str(np.count_nonzero(under_y == 1)) + '\n')
+    f.write('Undersampled X Shape: ' + str(under_X.shape) + '\n')
+    f.write('Undersampled y Shape: ' + str(under_y.shape) + '\n')
+
+    f.close()
+    return under_X, under_y
 
 
 # ###############################

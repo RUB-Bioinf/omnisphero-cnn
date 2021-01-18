@@ -1158,7 +1158,7 @@ def main():
     oligo_mode = True
     neuron_mode = False
     debug_mode = False
-    n_jobs = 40
+    n_jobs = 20
 
     print('Sleeping....')
     # time.sleep(18000)

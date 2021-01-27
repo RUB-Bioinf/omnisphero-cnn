@@ -243,17 +243,99 @@ def hdf5_loader_worker(filename: str, path: str, pattern: str, suffix_data: str,
             f.close()
         # done evaluating y file
 
-    elif filename.endswith(suffix_data_zipped):
+    # elif filename.endswith(suffix_data_zipped):
+    #    worker_x = []
+    #
+    #    # handling the case, if a hdf5 file has been zipped
+    #    # The idea: Read the zip, unzip it in ram and parse the byte stream directly into the h5 constructor!
+    #    input_zip = ZipFile(path + os.sep + filename)
+    #    zipped_data_name = input_zip.namelist()[0]
+    #    data = input_zip.read(zipped_data_name)
+    #    f = h5py.File(data, 'r')
+    #    worker_x = read_hdf5_content(f, gp_current, gp_max, pattern, filename, well_regex, normalize_enum,
+    #                                 terminal_columns, verbose, best_well_max, best_well_min)
+    #    f.close()
+    #
+    #    if normalize_enum == 4:
+    #        for j in range(len(worker_x)):
+    #            if verbose:
+    #                line_print('Normalizing well entry ' + str(j) + ' / ' + str(
+    #                    len(worker_x)), max_width=terminal_columns)
+    #            worker_x[j][0] = normalize_np(worker_x[j][0], best_well_min[0], best_well_max[0])
+    #            worker_x[j][1] = normalize_np(worker_x[j][1], best_well_min[1], best_well_max[1])
+    #            worker_x[j][2] = normalize_np(worker_x[j][2], best_well_min[2], best_well_max[2])
+    #
+    #    del data
+
+    elif (filename.endswith(suffix_data) or filename.endswith(suffix_data_zipped)) and not filename.endswith(
+            suffix_label):
         worker_x = []
 
-        # handling the case, if a hdf5 file has been zipped
-        # The idea: Read the zip, unzip it in ram and parse the byte stream directly into the h5 constructor!
-        input_zip = ZipFile(path + os.sep + filename)
-        zipped_data_name = input_zip.namelist()[0]
-        data = input_zip.read(zipped_data_name)
-        f = h5py.File(data, 'r')
-        worker_x = read_hdf5_content(f, gp_current, gp_max, pattern, filename, well_regex, normalize_enum,
-                                     terminal_columns, verbose, best_well_max, best_well_min)
+        if filename.endswith(suffix_data):
+            # Opening default h5 stream
+            f = h5py.File(path + os.sep + filename, 'r')
+        elif filename.endswith(suffix_data_zipped):
+            # Opening zipped h5 stream
+            # Idea: Load the zip file, unzip in ram and load the byte array as an IO stream into h5
+            # Hoping this will be faster than reading a default h5 from network disk
+
+            h5_version = h5py.version.version_tuple # Make sure the version is 2.9 or above
+            if not (h5_version[0] > 2 or (h5_version[0] == 2 and h5_version[1] >= 9)):
+                raise Exception("The import from zip files requires h5py library version 2.9 or higher! Your version: "+str(h5py.__version__))
+
+            input_zip = ZipFile(path + os.sep + filename)
+            zipped_data_name = input_zip.namelist()[0]
+            data = input_zip.open(zipped_data_name)
+            f = h5py.File(data, 'r')
+            del data
+            del input_zip
+
+            # Requires new h5 version!!
+            # https://stackoverflow.com/questions/58140698/read-h5file-from-a-folder-inside-a-zipped-folder-into-pandas-dataframe
+            # TODO: Update h5 in conda
+        else:
+            raise Exception("Unknown h5 data file!")
+            pass
+
+        key_list = list(f.keys())
+        key_list.sort(key=lambda a: int(re.split(pattern, a)[1]))
+
+        for k in range(len(key_list)):
+            key = key_list[k]
+            # print("Loading dataset associated with key ", str(key))
+            current_well = re.split(well_regex, key)[1]
+
+            if verbose:
+                line_print("Reading data file: " + filename + " - Current dataset key: " + str(
+                    key) + " ["+str(k)+"/"+str(len(key_list))+"]. Well: " + current_well + " [" + str(gp_current) + "/" + str(gp_max) + "]",
+                           max_width=terminal_columns)
+
+            current_x = np.array(f[str(key)])
+            if normalize_enum == 0:
+                pass
+            elif normalize_enum == 1:
+                current_x = normalize_np(current_x, 0, 255)
+            elif normalize_enum == 2:
+                current_x[0] = normalize_np(current_x[0], current_x[0].min(), current_x[0].max())
+                current_x[1] = normalize_np(current_x[1], current_x[1].min(), current_x[1].max())
+                current_x[2] = normalize_np(current_x[2], current_x[2].min(), current_x[2].max())
+            elif normalize_enum == 3:
+                current_x[0] = normalize_np(current_x[0], current_x.min(), current_x.max())
+                current_x[1] = normalize_np(current_x[1], current_x.min(), current_x.max())
+                current_x[2] = normalize_np(current_x[2], current_x.min(), current_x.max())
+            elif normalize_enum == 4:
+                best_well_max[0] = max(best_well_max[0], current_x[0].max())
+                best_well_max[1] = max(best_well_max[1], current_x[1].max())
+                best_well_max[2] = max(best_well_max[2], current_x[2].max())
+
+                best_well_min[0] = min(best_well_min[0], current_x[0].min())
+                best_well_min[1] = min(best_well_min[1], current_x[1].min())
+                best_well_min[2] = min(best_well_min[2], current_x[2].min())
+                # TODO: Implement
+            else:
+                raise Exception('Undefined state of normalize_enum')
+
+            worker_x.append(np.array(current_x))
         f.close()
 
         if normalize_enum == 4:
@@ -264,26 +346,8 @@ def hdf5_loader_worker(filename: str, path: str, pattern: str, suffix_data: str,
                 worker_x[j][0] = normalize_np(worker_x[j][0], best_well_min[0], best_well_max[0])
                 worker_x[j][1] = normalize_np(worker_x[j][1], best_well_min[1], best_well_max[1])
                 worker_x[j][2] = normalize_np(worker_x[j][2], best_well_min[2], best_well_max[2])
-
-        del data
-
-    elif filename.endswith(suffix_data) and not filename.endswith(suffix_label):
-        worker_x = []
-        with h5py.File(path + os.sep + filename, 'r') as f:
-            worker_x = read_hdf5_content(f, gp_current, gp_max, pattern, filename, well_regex,normalize_enum,
-                                         terminal_columns, verbose, best_well_max, best_well_min)
-            f.close()
-
-        if normalize_enum == 4:
-            for j in range(len(worker_x)):
-                if verbose:
-                    line_print('Normalizing well entry ' + str(j) + ' / ' + str(
-                        len(worker_x)), max_width=terminal_columns)
-                worker_x[j][0] = normalize_np(worker_x[j][0], best_well_min[0], best_well_max[0])
-                worker_x[j][1] = normalize_np(worker_x[j][1], best_well_min[1], best_well_max[1])
-                worker_x[j][2] = normalize_np(worker_x[j][2], best_well_min[2], best_well_max[2])
-
         # Done evaluating X file
+
     elif filename.endswith('_prediction.csv'):
         prediction_file = True
         worker_x = None
@@ -339,6 +403,7 @@ def read_hdf5_content(f: h5py.File, gp_current, gp_max, pattern: Pattern, filena
         worker_x.append(np.array(current_x))
 
     return worker_x
+
 
 ###
 

@@ -32,8 +32,8 @@ model_source_path_neuron = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/
 # MODELS TO BE VALIDATED
 # modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/oligo_fieldTest_WObrightness_longer/0_custom/'
 
-source_dir_oligo = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/oligo_15/'
-source_dir_neuron = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/neuron_15/'
+source_dir_oligo = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/oligo_17/'
+source_dir_neuron = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/neuron_17/'
 
 source_dir_paper_redo_oligo  = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/oligo_6/'
 source_dir_paper_redo_neuron = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/neuron_6/'
@@ -276,8 +276,8 @@ def custom_paths_predict():
 
 def prodi_gpu_predict():
     print('Running Predictions.')
-    use_oligo = True
-    use_neuron = False
+    use_oligo = False
+    use_neuron = True
 
     use_debug = False
     use_paper = True
@@ -293,8 +293,8 @@ def prodi_gpu_predict():
     # source_dir_redo_paper_neuron = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_paper/rosi/'
 
     # .h5 dirs to be predicted for efsa or endpoints
-    source_dir_redo_paper_oligo  = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/oligo_15/'
-    source_dir_redo_paper_neuron = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/neuron_15/'
+    source_dir_redo_paper_oligo  = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/oligo_17/'
+    source_dir_redo_paper_neuron = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/neuron_17/'
 
     if use_paper:
         if use_neuron:

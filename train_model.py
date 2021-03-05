@@ -1146,14 +1146,14 @@ def decode_history_key(key: str) -> str:
 
 
 glia_path_train = [
-    '/home/nilfoe/prodi/bioinfdata/work/omnisphero/CNN-glia/training/glia/VJK135_trainingData_glia',
-    '/home/nilfoe/prodi/bioinfdata/work/omnisphero/CNN-glia/training/glia/VJK136_trainingData_glia'
+    '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN-glia-raw/training/glia/VJK135_trainingData_glia-raw',
+    '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN-glia-raw/training/glia/VJK136_trainingData_glia-raw'
 ]
 
-glia_path_test='/home/nilfoe/prodi/bioinfdata/work/omnisphero/CNN-glia/test/glia/'
+glia_path_test='/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN-glia-raw/test/glia/'
 
 glia_path_val = [
-    '/home/nilfoe/prodi/bioinfdata/work/omnisphero/CNN-glia/validation/glia/'
+    '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN-glia-raw/validation/glia/'
 ]
 
 def main():
@@ -1161,10 +1161,22 @@ def main():
     data_gen = get_default_augmenter()
     n_jobs = 20
 
-    out_path = '/home/nilfoe/prodi/bioinfdata/work/omnisphero/CNN-glia/models/glia/'
+    out_path = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN-glia-raw/models/glia/'
 
     print('Sleeping....')
     # time.sleep(18000)
+
+    train_model(
+        training_path_list=glia_path_train,
+        validation_path_list=glia_path_val,
+        test_data_path=glia_path_test,
+        use_SMOTE=False,
+        out_path=out_path + 'base' + os.sep,
+        gpu_index_string="1",
+        optimizer='SGD',
+        n_jobs=n_jobs,
+        epochs=5000
+    )
 
     train_model(
         training_path_list=glia_path_train,
@@ -1179,7 +1191,6 @@ def main():
         epochs=5000
     )
 
-
     train_model(
         training_path_list=glia_path_train,
         validation_path_list=glia_path_val,
@@ -1191,7 +1202,6 @@ def main():
         n_jobs=n_jobs,
         epochs=5000
     )
-
 
     train_model(
         training_path_list=glia_path_train,
@@ -1205,7 +1215,6 @@ def main():
         data_gen=data_gen,
         epochs=5000
     )
-
 
     print('Finished all trainings. Goodbye.')
 

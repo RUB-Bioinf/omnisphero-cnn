@@ -22,8 +22,8 @@ gpu_index_string = "2"
 
 # MODELS IN USE
 # Default trained for N1 normalisation
-model_source_path_oligo = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/results/oligo_final_sigmodal/0_custom/'
-model_source_path_neuron = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/results/neuron_final_sigmodal/0_custom/'
+model_source_path_oligo = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/models/results/oligo_final_sigmodal/0_custom/'
+model_source_path_neuron = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/models/results/neuron_final_sigmodal/0_custom/'
 
 # MODELS TO DEBUG THAT FEATURE N4 NORMALISATION
 # modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/debug-normalizing/oligo-n4/0_custom/'
@@ -32,11 +32,11 @@ model_source_path_neuron = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/
 # MODELS TO BE VALIDATED
 # modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/oligo_fieldTest_WObrightness_longer/0_custom/'
 
-source_dir_oligo = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/oligo_17/'
-source_dir_neuron = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/neuron_17/'
+source_dir_oligo = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/oligo_18/'
+source_dir_neuron = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/neuron_18/'
 
-source_dir_paper_redo_oligo  = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/oligo_6/'
-source_dir_paper_redo_neuron = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/neuron_6/'
+source_dir_paper_redo_oligo  = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/oligo_6/'
+source_dir_paper_redo_neuron = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/neuron_6/'
 
 # ######### To validate, use these whole well experiments: #########
 # source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/oligo/unannotated/'
@@ -277,24 +277,36 @@ def custom_paths_predict():
 def prodi_gpu_predict():
     print('Running Predictions.')
     use_oligo = False
-    use_neuron = True
+    use_neuron = False
+    use_glia = True
 
     use_debug = False
-    use_paper = True
+    use_paper = False
     skip_predicted = True
     n_jobs: int = 20
 
     # Paper Models trained for N4
-    model_source_path_oligo_paper = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/training/debug/paper-final_datagen/oligo-normalize4/'
-    model_source_path_neuron_paper = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/training/debug/paper-final_datagen/neuron-normalize4/'
+    model_source_path_oligo_paper = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/training/debug/paper-final_datagen/oligo-normalize4/'
+    model_source_path_neuron_paper = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/training/debug/paper-final_datagen/neuron-normalize4/'
+    model_source_path_glia = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN-glia/models/glia/smote/'
 
     # .h5 dirs to be predicted for the paper
     # source_dir_redo_paper_oligo = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_paper/'
     # source_dir_redo_paper_neuron = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_paper/rosi/'
 
     # .h5 dirs to be predicted for efsa or endpoints
-    source_dir_redo_paper_oligo  = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/oligo_17/'
-    source_dir_redo_paper_neuron = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/neuron_17/'
+    source_dir_redo_paper_oligo  = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/oligo_18/'
+    source_dir_redo_paper_neuron = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/neuron_18/'
+    source_dir_glia = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/glia_01/'
+
+
+    if use_glia:
+        predict_batch(model_source_path=model_source_path_glia, source_dir=source_dir_glia,
+                      normalize_enum=4,
+                      n_jobs=n_jobs,
+                      skip_predicted=skip_predicted,
+                      gpu_index_string="0")
+
 
     if use_paper:
         if use_neuron:
@@ -322,6 +334,7 @@ def prodi_gpu_predict():
                           n_jobs=n_jobs,
                           skip_predicted=skip_predicted,
                           gpu_index_string="1")
+
 
     if use_debug:
         predict_batch(model_source_path=model_source_path_oligo_paper,

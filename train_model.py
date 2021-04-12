@@ -1146,14 +1146,17 @@ def decode_history_key(key: str) -> str:
 
 
 glia_path_train = [
-    '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN-glia-raw/training/glia/VJK135_trainingData_glia-raw',
-    '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN-glia-raw/training/glia/VJK136_trainingData_glia-raw'
+    '/home/nilfoe/bioinf/Omnisphero/CNN-glia/training/glia/JK247_ECM pretreated_trainingData_glia',
+    '/home/nilfoe/bioinf/Omnisphero/CNN-glia/training/glia/JK247_spheres pretreated_trainingData_glia',
+    '/home/nilfoe/bioinf/Omnisphero/CNN-glia/training/glia/JK274_normal_trainingData_glia',
+    '/home/nilfoe/bioinf/Omnisphero/CNN-glia/training/glia/VJK135_trainingData_glia',
+    '/home/nilfoe/bioinf/Omnisphero/CNN-glia/training/glia/VJK136_trainingData_glia'
 ]
 
-glia_path_test='/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN-glia-raw/test/glia/'
+glia_path_test='/home/nilfoe/bioinf/Omnisphero/CNN-glia/test/glia/'
 
 glia_path_val = [
-    '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN-glia-raw/validation/glia/'
+    '/home/nilfoe/bioinf/Omnisphero/CNN-glia/validation/glia/'
 ]
 
 def main():
@@ -1161,7 +1164,7 @@ def main():
     data_gen = get_default_augmenter()
     n_jobs = 20
 
-    out_path = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN-glia-raw/models/glia/'
+    out_path = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN-glia/models/glia-extendedData/'
 
     print('Sleeping....')
     # time.sleep(18000)
@@ -1172,7 +1175,7 @@ def main():
         test_data_path=glia_path_test,
         use_SMOTE=False,
         out_path=out_path + 'base' + os.sep,
-        gpu_index_string="1",
+        gpu_index_string="0",
         optimizer='SGD',
         n_jobs=n_jobs,
         epochs=5000
@@ -1184,7 +1187,7 @@ def main():
         test_data_path=glia_path_test,
         use_SMOTE=False,
         out_path=out_path + 'datagen' + os.sep,
-        gpu_index_string="1",
+        gpu_index_string="0",
         optimizer='SGD',
         n_jobs=n_jobs,
         data_gen=data_gen,
@@ -1197,7 +1200,7 @@ def main():
         test_data_path=glia_path_test,
         use_SMOTE=True,
         out_path=out_path + 'smote' + os.sep,
-        gpu_index_string="1",
+        gpu_index_string="0",
         optimizer='SGD',
         n_jobs=n_jobs,
         epochs=5000
@@ -1209,7 +1212,7 @@ def main():
         test_data_path=glia_path_test,
         use_SMOTE=True,
         out_path=out_path + 'datagen_and_smote' + os.sep,
-        gpu_index_string="1",
+        gpu_index_string="0",
         optimizer='SGD',
         n_jobs=n_jobs,
         data_gen=data_gen,

@@ -22,8 +22,8 @@ gpu_index_string = "2"
 
 # MODELS IN USE
 # Default trained for N1 normalisation
-model_source_path_oligo = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/results/oligo_final_sigmodal/0_custom/'
-model_source_path_neuron = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/results/neuron_final_sigmodal/0_custom/'
+model_source_path_oligo = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/models/results/oligo_final_sigmodal/0_custom/'
+model_source_path_neuron = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/models/results/neuron_final_sigmodal/0_custom/'
 
 # MODELS TO DEBUG THAT FEATURE N4 NORMALISATION
 # modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/debug-normalizing/oligo-n4/0_custom/'
@@ -32,11 +32,11 @@ model_source_path_neuron = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/
 # MODELS TO BE VALIDATED
 # modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/oligo_fieldTest_WObrightness_longer/0_custom/'
 
-source_dir_oligo = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/oligo_14/'
-source_dir_neuron = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/neuron_14/'
+source_dir_oligo = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/oligo_18/'
+source_dir_neuron = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/neuron_18/'
 
-source_dir_paper_redo_oligo  = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/oligo_6/'
-source_dir_paper_redo_neuron = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/neuron_6/'
+source_dir_paper_redo_oligo  = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/oligo_6/'
+source_dir_paper_redo_neuron = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/neuron_6/'
 
 # ######### To validate, use these whole well experiments: #########
 # source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/oligo/unannotated/'
@@ -254,7 +254,7 @@ def main(args):
     print('Number of arguments:', len(args), 'arguments.')
     print('Argument List:', str(args))
 
-    custom_paths = False
+    custom_paths = False;
     for arg in args:
         arg = str(arg).lower()
         print('Evaluating arg: "'+arg+'".')
@@ -273,67 +273,98 @@ def custom_paths_predict():
     print('Your input: '+model_source_path);
 
 
-    pass
-
 
 def prodi_gpu_predict():
     print('Running Predictions.')
-    use_oligo = False
+    use_oligo = True
     use_neuron = True
+    use_glia = False
+    use_old = False
 
-    use_debug = True
-    use_paper = False
+    use_debug = False
+    use_paper = True
     skip_predicted = True
     n_jobs: int = 20
 
     # Paper Models trained for N4
-    model_source_path_oligo_paper = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/training/debug/paper-final_datagen/oligo-normalize4/'
-    model_source_path_neuron_paper = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/training/debug/paper-final_datagen/neuron-normalize4/'
+    model_source_path_oligo_paper = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/training/debug/paper-final_datagen/oligo-normalize4/'
+    model_source_path_neuron_paper = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/training/debug/paper-final_datagen/neuron-normalize4/'
+    model_source_path_glia = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN-glia/models/glia/smote/'
 
-    # .h dirs to be predicted for the paper
-    source_dir_redo_paper_oligo = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_paper/'
-    source_dir_redo_paper_neuron = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_paper/rosi/'
+    # .h5 dirs to be predicted for the paper
+    # source_dir_redo_paper_oligo = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_paper/'
+    # source_dir_redo_paper_neuron = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_paper/rosi/'
 
-    # source_dir_redo_paper_oligo  = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/oligo_13/'
-    # source_dir_redo_paper_neuron = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/final/neuron_13/'
+    # .h5 dirs to be predicted for efsa or endpoints
+    source_dir_paper_oligo  = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/oligo_endpoints5/'
+    source_dir_paper_neuron = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/neuron_endpoints5/'
+
+    source_dir_paper_oligo2  = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/oligo_endpoints6/'
+    source_dir_paper_neuron2 = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/neuron_endpoints6/'
+    
+    source_dir_glia = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/glia_01/'
+
+
+    if use_glia:
+        predict_batch(model_source_path=model_source_path_glia, source_dir=source_dir_glia,
+                      normalize_enum=4,
+                      n_jobs=n_jobs,
+                      skip_predicted=skip_predicted,
+                      gpu_index_string="0")
+
+
+    if use_paper:
+        if use_neuron:
+            predict_batch(model_source_path=model_source_path_neuron_paper, source_dir=source_dir_paper_neuron,
+                          normalize_enum=4,
+                          n_jobs=n_jobs,
+                          skip_predicted=skip_predicted,
+                          gpu_index_string="0")
+
+            predict_batch(model_source_path=model_source_path_neuron_paper, source_dir=source_dir_paper_neuron2,
+                          normalize_enum=4,
+                          n_jobs=n_jobs,
+                          skip_predicted=skip_predicted,
+                          gpu_index_string="0")
+        if use_oligo:
+            predict_batch(model_source_path=model_source_path_oligo_paper, source_dir=source_dir_paper_oligo,
+                          normalize_enum=4,
+                          n_jobs=n_jobs,
+                          skip_predicted=skip_predicted,
+                          gpu_index_string="0")
+            predict_batch(model_source_path=model_source_path_oligo_paper, source_dir=source_dir_paper_oligo2,
+                          normalize_enum=4,
+                          n_jobs=n_jobs,
+                          skip_predicted=skip_predicted,
+                          gpu_index_string="0")
+    if use_old:
+        if use_neuron:
+            predict_batch(model_source_path=model_source_path_neuron, source_dir=source_dir_neuron,
+                          normalize_enum=1,
+                          n_jobs=n_jobs,
+                          skip_predicted=skip_predicted,
+                          gpu_index_string="0")
+        if use_oligo:
+            predict_batch(model_source_path=model_source_path_oligo, source_dir=source_dir_oligo,
+                          normalize_enum=1,
+                          n_jobs=n_jobs,
+                          skip_predicted=skip_predicted,
+                          gpu_index_string="1")
+
 
     if use_debug:
-        predict_batch(model_source_path=model_source_path_neuron_paper,
-                      source_dir='/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_debug/',
+        predict_batch(model_source_path=model_source_path_oligo_paper,
+                      source_dir=source_dir_oligo,
                       normalize_enum=4,
-                      n_jobs=1,
+                      n_jobs=n_jobs,
                       skip_predicted=False,
                       gpu_index_string="0")
-    else:
-        if use_paper:
-            if use_neuron:
-                predict_batch(model_source_path=model_source_path_neuron_paper, source_dir=source_dir_redo_paper_neuron,
-                              normalize_enum=4,
-                              n_jobs=n_jobs,
-                              skip_predicted=skip_predicted,
-                              gpu_index_string="0")
-            if use_oligo:
-                predict_batch(model_source_path=model_source_path_oligo_paper, source_dir=source_dir_redo_paper_oligo,
-                              normalize_enum=4,
-                              n_jobs=n_jobs,
-                              skip_predicted=skip_predicted,
-                              gpu_index_string="1")
-        else:
-            if use_neuron:
-                predict_batch(model_source_path=model_source_path_neuron, source_dir=source_dir_neuron,
-                              normalize_enum=1,
-                              n_jobs=n_jobs,
-                              skip_predicted=skip_predicted,
-                              gpu_index_string="0")
-    
-            if use_oligo:
-                predict_batch(model_source_path=model_source_path_oligo, source_dir=source_dir_oligo,
-                              normalize_enum=1,
-                              n_jobs=n_jobs,
-                              skip_predicted=skip_predicted,
-                              gpu_index_string="1")
-
-
+        predict_batch(model_source_path=model_source_path_neuron_paper,
+                      source_dir=source_dir_neuron,
+                      normalize_enum=4,
+                      n_jobs=n_jobs,
+                      skip_predicted=False,
+                      gpu_index_string="0")
 
     print(gct() + ' All Predictions done. Have a nice day. =)')
 

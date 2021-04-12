@@ -1145,91 +1145,79 @@ def decode_history_key(key: str) -> str:
     return key
 
 
+glia_path_train = [
+    '/home/nilfoe/bioinf/Omnisphero/CNN-glia/training/glia/JK247_ECM pretreated_trainingData_glia',
+    '/home/nilfoe/bioinf/Omnisphero/CNN-glia/training/glia/JK247_spheres pretreated_trainingData_glia',
+    '/home/nilfoe/bioinf/Omnisphero/CNN-glia/training/glia/JK274_normal_trainingData_glia',
+    '/home/nilfoe/bioinf/Omnisphero/CNN-glia/training/glia/VJK135_trainingData_glia',
+    '/home/nilfoe/bioinf/Omnisphero/CNN-glia/training/glia/VJK136_trainingData_glia'
+]
+
+glia_path_test='/home/nilfoe/bioinf/Omnisphero/CNN-glia/test/glia/'
+
+glia_path_val = [
+    '/home/nilfoe/bioinf/Omnisphero/CNN-glia/validation/glia/'
+]
+
 def main():
     # AUGMENTATION
     data_gen = get_default_augmenter()
+    n_jobs = 20
 
-    out_path_base = out_path + 'paper-final_no-datagen' + os.sep
-    out_path_oligo = out_path_base + 'oligo' + os.sep
-    out_path_neuron = out_path_base + 'neuron' + os.sep
-
-    out_path_oligo_debug = out_path_base + 'oligo_debug' + os.sep
-
-    oligo_mode = True
-    neuron_mode = False
-    debug_mode = False
-    n_jobs = 40
+    out_path = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN-glia/models/glia-extendedData/'
 
     print('Sleeping....')
     # time.sleep(18000)
 
-    if debug_mode:
-        train_model(
-            training_path_list=debug_oligos,
-            validation_path_list=debug_oligos_validation,
-            test_data_path='/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_test/',
-            # data_gen=data_gen,
-            use_SMOTE=False,
-            out_path=out_path + 'paper-final_datagen' + os.sep + 'neuron_kontrolliert_undersampled' + os.sep,
-            gpu_index_string="3",
-            optimizer='SGD',
-            normalize_enum=4,
-            under_sample_train_data=True, under_sample_val_data=True,
-            epochs=5,
-            n_jobs=25
-        )
-        return
+    train_model(
+        training_path_list=glia_path_train,
+        validation_path_list=glia_path_val,
+        test_data_path=glia_path_test,
+        use_SMOTE=False,
+        out_path=out_path + 'base' + os.sep,
+        gpu_index_string="0",
+        optimizer='SGD',
+        n_jobs=n_jobs,
+        epochs=5000
+    )
 
-    if oligo_mode:
-        train_model(
-            training_path_list=final_oligos_validated,
-            validation_path_list=final_oligos_validated_validation_set,
-            test_data_path=test_data_path_oligo,
-            # training_path_list=oligo_paper_bleedthrough_path_train,
-            # validation_path_list=oligo_paper_bleedthrough_path_val,
-            # test_data_path=oligo_paper_bleedthrough_path_test,
-            # data_gen=data_gen,
-            use_SMOTE=False,
-            out_path=out_path + 'paper-final_datagen' + os.sep + 'oligo-normalize4-undersampling' + os.sep,
-            under_sample_train_data=True, under_sample_val_data=True,
-            gpu_index_string="1",
-            optimizer='SGD',
-            n_jobs=n_jobs,
-            epochs=5000
-        )
+    train_model(
+        training_path_list=glia_path_train,
+        validation_path_list=glia_path_val,
+        test_data_path=glia_path_test,
+        use_SMOTE=False,
+        out_path=out_path + 'datagen' + os.sep,
+        gpu_index_string="0",
+        optimizer='SGD',
+        n_jobs=n_jobs,
+        data_gen=data_gen,
+        epochs=5000
+    )
 
-    # paper-final_no-datagen\neuron
-    if neuron_mode:
-        train_model(
-            training_path_list=final_neurons_validated,
-            validation_path_list=final_neurons_validated_validation_set,
-            test_data_path=test_data_path_neuron,
-            # training_path_list=neuron_paper_bleedthrough_path_train,
-            # validation_path_list=neuron_paper_bleedthrough_path_val,
-            # test_data_path=neuron_paper_bleedthrough_path_test,
-            # data_gen=data_gen,
-            use_SMOTE=False,
-            out_path=out_path + 'paper-final_datagen' + os.sep + 'neuron-normalize4-undersampling' + os.sep,
-            under_sample_train_data=True, under_sample_val_data=True,
-            normalize_enum=4,
-            gpu_index_string="0",
-            optimizer='SGD',
-            n_jobs=n_jobs,
-            epochs=5000
-        )
+    train_model(
+        training_path_list=glia_path_train,
+        validation_path_list=glia_path_val,
+        test_data_path=glia_path_test,
+        use_SMOTE=True,
+        out_path=out_path + 'smote' + os.sep,
+        gpu_index_string="0",
+        optimizer='SGD',
+        n_jobs=n_jobs,
+        epochs=5000
+    )
 
-    # out_path_oligo = out_path+'oligo'+os.sep
-    # out_path_neuron = out_path+'neuron'+os.sep
-
-    #
-    # train_model_scrambling(path_candidate_list=final_oligos_validated,
-    #                       test_data_path=test_data_path_oligo,
-    #                       out_path=out_path_oligo,
-    #                       validation_count=1)
-    # train_model_scrambling(path_candidate_list=final_neurons_validated,
-    #                       test_data_path=test_data_path_neuron,
-    #                       out_path=out_path_neuron,
-    #                       validation_count=1)
+    train_model(
+        training_path_list=glia_path_train,
+        validation_path_list=glia_path_val,
+        test_data_path=glia_path_test,
+        use_SMOTE=True,
+        out_path=out_path + 'datagen_and_smote' + os.sep,
+        gpu_index_string="0",
+        optimizer='SGD',
+        n_jobs=n_jobs,
+        data_gen=data_gen,
+        epochs=5000
+    )
 
     print('Finished all trainings. Goodbye.')
 

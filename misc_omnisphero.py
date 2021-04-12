@@ -251,6 +251,8 @@ def hdf5_loader_worker(filename: str, path: str, pattern: str, suffix_data: str,
     #    input_zip = ZipFile(path + os.sep + filename)
     #    zipped_data_name = input_zip.namelist()[0]
     #    data = input_zip.read(zipped_data_name)
+    #    input_zip.close()
+    #
     #    f = h5py.File(data, 'r')
     #    worker_x = read_hdf5_content(f, gp_current, gp_max, pattern, filename, well_regex, normalize_enum,
     #                                 terminal_columns, verbose, best_well_max, best_well_min)

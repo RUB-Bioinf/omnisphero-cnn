@@ -778,8 +778,8 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     if data_gen is not None:
         data_gen_description = 'Used: ' + str(data_gen)
 
-    f.write('Host: '+str(getpass.getuser())+'\n')
-    f.write('User: '+str(socket.gethostname())+'\n')
+    f.write('Host: ' + str(getpass.getuser()) + '\n')
+    f.write('User: ' + str(socket.gethostname()) + '\n')
     f.write('Training start time: ' + gct() + '\n')
     f.write('Model: ' + str(model) + '\n')
     if label is not None:
@@ -1153,11 +1153,12 @@ glia_path_train = [
     '/home/nilfoe/bioinf/Omnisphero/CNN-glia/training/glia/VJK136_trainingData_glia'
 ]
 
-glia_path_test='/home/nilfoe/bioinf/Omnisphero/CNN-glia/test/glia/'
+glia_path_test = '/home/nilfoe/bioinf/Omnisphero/CNN-glia/test/glia/'
 
 glia_path_val = [
     '/home/nilfoe/bioinf/Omnisphero/CNN-glia/validation/glia/'
 ]
+
 
 def main():
     # AUGMENTATION

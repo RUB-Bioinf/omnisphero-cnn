@@ -296,11 +296,8 @@ def prodi_gpu_predict():
     # source_dir_redo_paper_neuron = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_paper/rosi/'
 
     # .h5 dirs to be predicted for efsa or endpoints
-    source_dir_paper_oligo  = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/oligo_endpoints5/'
-    source_dir_paper_neuron = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/neuron_endpoints5/'
-
-    source_dir_paper_oligo2  = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/oligo_endpoints6/'
-    source_dir_paper_neuron2 = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/neuron_endpoints6/'
+    source_dir_paper_oligo  = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/oligo_20/'
+    source_dir_paper_neuron = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/neuron_20/'
     
     source_dir_glia = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/glia_01/'
 
@@ -319,24 +316,13 @@ def prodi_gpu_predict():
                           normalize_enum=4,
                           n_jobs=n_jobs,
                           skip_predicted=skip_predicted,
-                          gpu_index_string="0")
-
-            predict_batch(model_source_path=model_source_path_neuron_paper, source_dir=source_dir_paper_neuron2,
-                          normalize_enum=4,
-                          n_jobs=n_jobs,
-                          skip_predicted=skip_predicted,
-                          gpu_index_string="0")
+                          gpu_index_string="1")
         if use_oligo:
             predict_batch(model_source_path=model_source_path_oligo_paper, source_dir=source_dir_paper_oligo,
                           normalize_enum=4,
                           n_jobs=n_jobs,
                           skip_predicted=skip_predicted,
-                          gpu_index_string="0")
-            predict_batch(model_source_path=model_source_path_oligo_paper, source_dir=source_dir_paper_oligo2,
-                          normalize_enum=4,
-                          n_jobs=n_jobs,
-                          skip_predicted=skip_predicted,
-                          gpu_index_string="0")
+                          gpu_index_string="1")
     if use_old:
         if use_neuron:
             predict_batch(model_source_path=model_source_path_neuron, source_dir=source_dir_neuron,

@@ -14,16 +14,58 @@ from keras.callbacks import Callback
 # Canary Interrupt
 # #############################
 class CanaryInterruptCallback(Callback):
+    """
+    This extends the Keras Callback.
+    Add this to your model during training to use.
 
-    def __init__(self, path: str, starts_active: bool = True, label: str = None, out_stream=sys.stdout):
+    Upon training starting, a 'canary_interrupt.txt' file is created and this Callback keeps track of it.
+    When you delete this file, the training is ended after the current epoch completes.
+    You can use this class to manually delete the interrupt file to shut down the training without canceling it and run subsequent functions in your script (eg. saving the weights).
+
+    The canary file is automatically deleted when the training ends.
+
+    Fields to use:
+     - active: bool. While true, this callback is active and monitors the state of the canary file.
+     - shutdown_source: readonly bool. This param is true, if the canary was triggered and the training stopped.
+
+    .. note::
+        Created by Nils Förster.
+
+        Packages Required: os
+    """
+
+    def __init__(self, path: str, starts_active: bool = True, label: str = None,
+                 out_stream=sys.stdout):
+        """
+        Constructor for this class.
+        Use this function to set up a new canary callback.
+
+        Created by Nils Förster.
+
+        :param path: The path where to save your canary file.
+        :param starts_active: If True, the callback will check for file deletion. Default: True.
+        :param label: A custom text that will be printed into the canary file. Can be None. Default: None.
+        :param out_stream: The outstream used by this Callback. Default: sys.stdout.
+
+        :type path: str
+        :type starts_active: bool
+        :type label: str
+        :type out_stream: TextIOWrapper
+
+        :returns: An instance of this object.
+        :rtype: CanaryInterruptCallback
+
+        .. note:: Read the class doc for more info on fields and usage.
+        """
+
         super().__init__()
-
         self.active: bool = starts_active
         self.label: str = label
         self.shutdown_source: bool = False
         self.out_stream = out_stream
 
         os.makedirs(path, exist_ok=True)
+        b: TextIOWrapper = 2
 
         self.__canary_file = path + os.sep + 'canary_interrupt.txt'
         if os.path.exists(self.__canary_file):
@@ -33,8 +75,8 @@ class CanaryInterruptCallback(Callback):
         f.write(
             'Canary interrupt for CNN training started at ' + gct() + '.\nDelete this file to safely stop your '
                                                                       'training.')
-        if label is not None:
-            f.write('\nLabel: ' + str(label).strip())
+        if self.label is not None:
+            f.write('\nLabel: ' + str(self.label).strip())
         f.write('\n\nCreated by Nils Foerster.')
         f.close()
 
@@ -58,20 +100,75 @@ class CanaryInterruptCallback(Callback):
 # Live Plotting
 # #############################
 class PlotTrainingLiveCallback(Callback):
-    # packages required: os, socket, matplotlib as plt
+    """
+    This extends the Keras Callback.
+    Add this to your model during training to use.
 
-    supported_formats = ['eps', 'jpeg', 'jpg', 'pdf', 'pgf', 'png', 'ps', 'raw', 'rgba', 'svg', 'svgz', 'tif', 'tiff']
+    This Callback automatically plots and saves specified training metrics on your device.
+    See the static field 'supported_formats' for a list of all available file formats programmatically.
+    Supported image formats are: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff.
+
+    You can also export the plots as raw .csv files.
+    This callback also supports LaTeX compatible tikz plots.
+
+    This Callback also calculates the training time of each epoch and can plot them as well.
+    Based on that, the Callback can calculate the training ETA.
+
+
+    .. note::
+        Created by Nils Förster.
+        
+        Packages Required: time, os, socket, matplotlib
+    """
+
+    supported_formats = ['.eps', '.jpeg', '.jpg', '.pdf', '.pgf', '.png', '.ps', '.raw', '.rgba', '.svg', '.svgz',
+                         '.tif', '.tiff', '.csv', '.tex']
+    """
+    Lists all file formats supported by this Callback.
+    """
 
     def __init__(self, out_dir: str, out_extensions: [str] = ['.png', '.pdf', '.svg', '.csv', '.tex'],
                  label: str = None, save_timestamps: bool = True, epochs_target: int = None,
                  metrics_names: [str] = None, plot_eta_extra: bool = True, plot_dpi: int = 400,
-                 plot_transparancy: bool = True):
+                 plot_transparency: bool = True):
+        """
+        Constructor for this class.
+        Use this function to set up a new canary callback.
+
+        Created by Nils Förster.
+
+        :param out_dir: The directory to save the plots
+        :param out_extensions: A list of strings that feature all the different file extensions to export the metrics to. By default it's: ['.png', '.pdf', '.svg', '.csv', '.tex']
+        :param label: An optional label that can be None. If set, this label is printed in the title of every plot. Default: None.
+        :param save_timestamps: If true, the timestamps for every epoch is plotted. Default: True.
+        :param epochs_target: Optional argument that can be None. If set, this is the target amount of epochs to use when calulating ETA. Currently unused.
+        :param metrics_names: Optional argument. A list of strings of metrics to use (eg. ['loss']). When the model also has a validation counterpart of a given metric, this metric is plotted as well.
+        :param plot_eta_extra: If true, saves the timestamps plots in an extra directory in png file format. Default: True.
+        :param plot_dpi: The (image) DPI to uses for all plots. Default: 400.
+        :param plot_transparency: If True, all plots will feature an alpha channel (if supported). Default: True.
+
+        :type out_dir: str
+        :type out_extensions: [str] 
+        :type label: str, None
+        :type save_timestamps: bool 
+        :type epochs_target: int, None
+        :type metrics_names: [str], None
+        :type plot_eta_extra: bool
+        :type plot_dpi: int
+        :type plot_transparency: bool 
+
+        :returns: An instance of this object.
+        :rtype: PlotTrainingLiveCallback
+
+        .. note:: Read the class doc for more info on fields and usage.
+        """
+
         super().__init__()
         self.label = label
         self.out_extensions = out_extensions
         self.metrics_names = metrics_names
         self.plot_dpi = plot_dpi
-        self.plot_transparancy = plot_transparancy
+        self.plot_transparency = plot_transparency
         self.save_timestamps = save_timestamps
         self.epochs_target = epochs_target
         self.plot_eta_extra = plot_eta_extra
@@ -93,8 +190,8 @@ class PlotTrainingLiveCallback(Callback):
 
     def on_train_begin(self, logs={}):
         super().on_train_begin(logs)
-        self.write_timestamp_line('Training start;' + gct())
-        self.write_timestamp_line('Epoch;Timestamp')
+        self._write_timestamp_line('Training start;' + gct())
+        self._write_timestamp_line('Epoch;Timestamp')
 
         if self.metrics_names is None:
             self.metrics_names = self.model.metrics_names
@@ -105,15 +202,15 @@ class PlotTrainingLiveCallback(Callback):
 
     def on_train_end(self, logs={}):
         super().on_train_end(logs)
-        self.write_timestamp_line('Training finished;;' + gct())
-        self.plot_training_time()
-        self.plot_training_history_live()
+        self._write_timestamp_line('Training finished;;' + gct())
+        self._plot_training_time()
+        self._plot_training_history_live()
 
     def on_epoch_begin(self, epoch, logs={}):
         super().on_epoch_begin(logs)
         self.epochCount = self.epochCount + 1
         self.epoch_start_timestamp = time.time()
-        self.write_timestamp_line()
+        self._write_timestamp_line()
 
     def on_epoch_end(self, epoch, logs={}):
         super().on_epoch_end(logs)
@@ -125,13 +222,13 @@ class PlotTrainingLiveCallback(Callback):
             self.history[metric].append(logs[metric])
             self.history[val].append(logs[val])
 
-        self.plot_training_time()
-        self.plot_training_history_live()
+        self._plot_training_time()
+        self._plot_training_history_live()
 
         if self.plot_eta_extra:
-            self.plot_training_time(p_out_dir=self.out_dir, png_only=True)
+            self._plot_training_time(p_out_dir=self.out_dir, png_only=True)
 
-    def write_timestamp_line(self, line=None):
+    def _write_timestamp_line(self, line=None):
         if not self.save_timestamps:
             return
 
@@ -146,7 +243,7 @@ class PlotTrainingLiveCallback(Callback):
             # TODO print stacktrace
             pass
 
-    def plot_training_time(self, p_out_dir: str = None, png_only: bool = False):
+    def _plot_training_time(self, p_out_dir: str = None, png_only: bool = False):
         # Plotting epoch duration
         if p_out_dir is None:
             p_out_dir = self.live_plot_dir
@@ -155,11 +252,11 @@ class PlotTrainingLiveCallback(Callback):
             if png_only:
                 extension = '.png'
 
-            self.save_metric(data_name='training_time', extension=extension, title='Model Training Time',
-                             data1=self.epoch_duration_list, y_label='Duration (Sec.)', p_out_dir=p_out_dir)
+            self._save_metric(data_name='training_time', extension=extension, title='Model Training Time',
+                              data1=self.epoch_duration_list, y_label='Duration (Sec.)', p_out_dir=p_out_dir)
 
-    def save_metric(self, data_name: str, title: str, extension: str, data1: [float], data2: [float] = None,
-                    y_label: str = None, p_out_dir: str = None):
+    def _save_metric(self, data_name: str, title: str, extension: str, data1: [float], data2: [float] = None,
+                     y_label: str = None, p_out_dir: str = None):
         if p_out_dir is None:
             p_out_dir = self.live_plot_dir
 
@@ -168,10 +265,10 @@ class PlotTrainingLiveCallback(Callback):
             extension = '.' + extension
 
         if extension == '.csv':
-            self.save_csv_metric(data_name=data_name, data_label=y_label, data1=data1, data2=data2)
+            self._save_csv_metric(data_name=data_name, data_label=y_label, data1=data1, data2=data2)
             return
         if extension == '.tex':
-            self.save_tex_metric(data_name=data_name, title=title, data_label=y_label, data1=data1, data2=data2)
+            self._save_tex_metric(data_name=data_name, title=title, data_label=y_label, data1=data1, data2=data2)
             return
 
         if self.label is not None:
@@ -189,10 +286,10 @@ class PlotTrainingLiveCallback(Callback):
             plt.legend(['Train', 'Validation'], loc='best')
 
         plt.savefig(p_out_dir + data_name + '_live' + extension, dpi=self.plot_dpi,
-                    transparent=self.plot_transparancy)
+                    transparent=self.plot_transparency)
         plt.clf()
 
-    def save_csv_metric(self, data_name: str, data_label: str, data1, data2=None):
+    def _save_csv_metric(self, data_name: str, data_label: str, data1, data2=None):
         f_name = self.live_plot_dir + data_name + '_live.csv'
         f = open(f_name, 'w')
 
@@ -207,7 +304,7 @@ class PlotTrainingLiveCallback(Callback):
                 f.write(';' + str(data2[i]))
             f.write(';\n')
 
-    def save_tex_metric(self, data_name: str, title: str, data_label: str, data1, data2=None):
+    def _save_tex_metric(self, data_name: str, title: str, data_label: str, data1, data2=None) -> str:
         data = [data1]
         titles = ['Training']
         colors = ['blue']
@@ -236,7 +333,7 @@ class PlotTrainingLiveCallback(Callback):
 
         return out_text
 
-    def plot_training_history_live(self):
+    def _plot_training_history_live(self):
         # Plotting epoch duration
         for metric in self.metrics_names:
             val = 'val_' + metric
@@ -249,22 +346,52 @@ class PlotTrainingLiveCallback(Callback):
                 if val in self.history:
                     data2 = self.history[val]
 
-                self.save_metric(data_name=metric, extension=extension, title=title, y_label=m, data1=data1,
-                                 data2=data2)
+                self._save_metric(data_name=metric, extension=extension, title=title, y_label=m, data1=data1,
+                                  data2=data2)
 
 
 # ###############################
 # OTHER UTIL FUNCTIONS
 # ###############################
 
-def gct(raw: bool = False):
+def gct(raw: bool = False) -> [str, datetime]:
+    """
+    Gets the current time as a formated string or datetime object.
+    Shortcut function.
+
+    Created by Nils Förster.
+
+    :param raw: An optional parameter. If True, the time will be returned as a datetime object. Default: False.
+
+    :type raw: bool
+
+    :returns: The current time. Either as a formated string or datetime object.
+    :rtype: datetime,str
+
+    .. note:: Required packages: datetime
+    """
     n = datetime.now()
     if raw:
         return n
     return n.strftime("%d/%m/%Y %H:%M:%S")
 
 
-def get_time_diff(start_time: datetime):
+def get_time_diff(start_time: datetime) -> str:
+    """
+    Calculates the time difference from a given datetime object and the current time this function is being called.
+
+    Created by Nils Förster.
+
+    :param start_time: The timestamp to calculate the difference from
+
+    :type start_time: datetime
+
+    :returns: The time difference as a formated string.
+    :rtype: str
+
+    .. note:: Required packages: datetime
+    """
+
     diff = datetime.now() - start_time
     minutes = divmod(diff.total_seconds(), 60)
 
@@ -276,7 +403,7 @@ def get_time_diff(start_time: datetime):
 
 
 def under_sample_randomly(X, y, out_file_name: str):
-    print(gct()+' Undersampling randomly.')
+    print(gct() + ' Undersampling randomly.')
     n_samples, n_x, n_y, n_z = X.shape
     f = open(out_file_name, 'w')
 
@@ -286,18 +413,18 @@ def under_sample_randomly(X, y, out_file_name: str):
     f.write('Read y Shape: ' + str(y.shape) + '\n')
 
     under_sampler = RandomUnderSampler()
-    f.write('Undersampler: ' + str(under_sampler)+'\n')
+    f.write('Undersampler: ' + str(under_sampler) + '\n')
 
-    print(gct()+' Reshaping classes....')
+    print(gct() + ' Reshaping classes....')
     under_X = X.reshape(X.shape[0], -1)
     under_y = y.ravel()
     del X
     del y
 
-    print(gct()+' Undersampling....')
+    print(gct() + ' Undersampling....')
     under_X, under_y = under_sampler.fit_sample(under_X, under_y)
 
-    print(gct()+' Re-Reshaping classes....')
+    print(gct() + ' Re-Reshaping classes....')
     under_X = under_X.reshape(under_X.shape[0], n_x, n_y, n_z)
     under_y = under_y[:, np.newaxis]
 
@@ -313,6 +440,7 @@ def under_sample_randomly(X, y, out_file_name: str):
     f.close()
     return under_X, under_y
 
+
 def under_sample_near_miss(X, y, k_neighbors: int, under_sampling_mode: int, out_file_name: str):
     print('Undersampling using "Near Miss"-Method.')
     n_samples, n_x, n_y, n_z = X.shape
@@ -326,7 +454,7 @@ def under_sample_near_miss(X, y, k_neighbors: int, under_sampling_mode: int, out
     f.write('Undersampling k_neighbors: ' + str(k_neighbors) + '\n')
 
     under_sampler = NearMiss(version=under_sampling_mode, n_neighbors_ver3=k_neighbors)
-    f.write('Undersampler: ' + str(under_sampler)+'\n')
+    f.write('Undersampler: ' + str(under_sampler) + '\n')
 
     under_X = X.reshape(X.shape[0], -1)
     under_y = y.ravel()
@@ -355,7 +483,39 @@ def under_sample_near_miss(X, y, k_neighbors: int, under_sampling_mode: int, out
 # ###############################
 
 def create_tikz_axis(title: str, label_y: str, label_x: str = 'Epoch', max_x: float = 1.0, min_x: float = 0.0,
-                     max_y: float = 1.0, min_y: float = 0.0, tick_count: int = 10, legend_pos: str = 'north west'):
+                     max_y: float = 1.0, min_y: float = 0.0, tick_count: int = 10,
+                     legend_pos: str = 'north west') -> str:
+    """
+    Sets up a basic tikz plot environment to be used in a LaTeX document.
+    This is a helper function; For the true function try #get_plt_as_tex.
+    That function fills the tikz plot with graphs.
+
+    Created by Nils Förster.
+
+    :param title: The title to be used in the plot.
+    :param label_y: The label for the y axis.
+    :param label_x: Optional argument. The label for the x axis. Default: 'Epoch'.
+    :param max_x: Optional argument. The maximum span for the x axis. Default: 1.0
+    :param min_x: Optional argument. The minimum span for the x axis. Default: 0.0
+    :param max_y: Optional argument. The maximum span for the y axis. Default: 1.0
+    :param min_y: Optional argument. The maximum span for the y axis. Default: 0.0
+    :param tick_count: Optional argument. In how many 'ticks' should the plot be partitioned? Default: 10.
+    :param legend_pos: Optional argument. The position of the legend. Default: 'north-west'.
+
+    :type title: str
+    :type label_y: str
+    :type label_x: str
+    :type max_x: float
+    :type min_x: float
+    :type max_y: float
+    :type min_y: float
+    :type tick_count: int
+    :type legend_pos: str
+
+    :returns: A template for a tikz plot as a string.
+    :rtype: str
+    """
+
     max_x = float(max_x)
     max_y = float(max_y)
     tick_count = float(tick_count)
@@ -367,7 +527,7 @@ def create_tikz_axis(title: str, label_y: str, label_x: str = 'Epoch', max_x: fl
     if min_y + max_y > 10:
         tick_y = int(tick_y)
 
-    axis_text = '\\begin{center}\n\t\\begin{tikzpicture}\n\t\\begin{axis}[title={' + title + '},xlabel={' + label_x + '},ylabel={' + label_y + '},xtick distance=' + str(
+    axis_text: str = '\\begin{center}\n\t\\begin{tikzpicture}\n\t\\begin{axis}[title={' + title + '},xlabel={' + label_x + '},ylabel={' + label_y + '},xtick distance=' + str(
         tick_x) + ',ytick distance=' + str(tick_y) + ',xmin=' + str(min_x) + ',xmax=' + str(
         max_x) + ',ymin=' + str(min_y) + ',ymax=' + str(
         max_y) + ',major grid style={line width=.2pt,draw=gray!50},grid=both,height=8cm,width=8cm'
@@ -377,12 +537,81 @@ def create_tikz_axis(title: str, label_y: str, label_x: str = 'Epoch', max_x: fl
     return axis_text
 
 
-def get_plt_as_tex(data_list_y: [[float]], plot_colors: [], title: str, label_y: str, data_list_x: [[float]] = None,
-                   plot_titles: [str] = None,
-                   label_x: str = 'Epoch', max_x: float = 1.0, min_x: float = 0.0, max_y: float = 1.0,
-                   min_y: float = 0.0, max_entries: int = 4000, legend_pos: str = 'north west'):
+def get_plt_as_tex(data_list_y: [[float]], plot_colors: [str], title: str, label_y: str, data_list_x: [[float]] = None,
+                   plot_titles: [str] = None, label_x: str = 'Epoch', max_x: float = 1.0, min_x: float = 0.0,
+                   max_y: float = 1.0,
+                   min_y: float = 0.0, max_entries: int = 4000, tick_count: int = 10, legend_pos: str = 'north west'):
+    """
+    Formats a list of given plots in a single tikz axis to be compiled in LaTeX.
+    
+    This function respects the limits of the tikz compiler.
+    That compiler can only use a limited amount of virtual memory that is (to my knowledge not changeable).
+    Hence this function can limit can limit the line numbers for the LaTeX document.
+    Read this function's parameters for more info.
+
+    This function is designed to be used in tandem with the python library matplotlib.
+    You can plot multiple graphs in a single axis by providing them in a list.
+    Make sure that the lengths of the lists (see parameters below) for the y and x coordinates, colors and legend labels match.
+
+    Created by Nils Förster.
+
+    :param data_list_y: A list of plots to be put in the axis. Each entry in this list should be a list of floats with the y position of every node in the graph.
+    :param plot_colors: A list of strings descibing colors for every plot. Make sure len(data_list_y) matches len(plot_colors).
+    :param title: The title to be used in the plot.
+    :param label_y: The label for the y axis.
+    :param plot_titles: Optional argument. A list of strings containing the legend entries for every graph. If None, no entries are written in the legend. Make sure len(data_list_y) matches len(plot_titles).
+    :param data_list_x: Optional argument. A list of plots to be put in the axis. Each entry in this list should be a list of floats with the x position of every node in the graph. If this argument is None, the entries in the argument data_list_y are plotted as nodes in sequential order.
+    :param label_x: Optional argument. The label for the x axis. Default: 'Epoch'.
+    :param max_x: Optional argument. The maximum span for the x axis. Default: 1.0
+    :param min_x: Optional argument. The minimum span for the x axis. Default: 0.0
+    :param max_y: Optional argument. The maximum span for the y axis. Default: 1.0
+    :param min_y: Optional argument. The maximum span for the y axis. Default: 0.0
+    :param tick_count: Optional argument. In how many 'ticks' should the plot be partitioned? Default: 10.
+    :param legend_pos: Optional argument. The position of the legend. Default: 'north-west'.
+    :param max_entries: Limits the amount of nodes for the plot to this number. This does not cut of the data, but increases scanning offsets. Use a smaller number for faster compile times in LaTeX. Default: 4000.
+
+    :type data_list_y: [[float]]
+    :type plot_colors: [str]
+    :type title: str
+    :type label_y: str
+    :type plot_titles: [str]
+    :type label_x: str
+    :type max_x: float
+    :type min_x: float
+    :type max_y: float
+    :type min_y: float
+    :type tick_count: int
+    :type legend_pos: str
+    :type max_entries: int
+
+    :returns: A fully formated string containing a tikz plot with multiple graphs and and legends. Save this to your device and compile in LaTeX to render your plot.
+    :rtype: str
+
+    Examples
+    ----------
+    Use this example to plot a graph in matplotlib (as plt) as well as tikz:
+
+    >>> history = model.fit(...)
+    >>> loss = history.history['loss']
+    >>> plt.plot(history_all.history[hist_key]) # plotting the loss using matplotlib
+    >>> f = open('example.tex')
+    >>> tex = get_plt_as_tex(data_list_y=[loss], title='Example Plot', label_y='Loss', label_x='Epoch', plot_colors=['blue']) # plotting the same data as a tikz axis
+    >>> f.write(tex)
+    >>> f.close()
+
+    When you want to plot multiple graphs into a single axis, expand the example above like this:
+
+    >>> get_plt_as_tex(data_list_y=[loss, val_loss], title='Example Plot', label_y='Loss', label_x='Epoch', plot_colors=['blue'], plot_titles=['Loss','Validation Loss'])
+
+    When trying to render the tikz plot, make sure to import these LaTeX packages:
+
+    >>> \\usepackage{tikz,amsmath, amssymb,bm,color,pgfplots}
+
+    .. note:: Some manual adjustments may be required to the tikz axis. Try using a wysisyg tikz / LaTeX editor for that. For export use, read the whole tikz user manual ;)
+    """
+
     out_text = create_tikz_axis(title=title, label_y=label_y, label_x=label_x, max_x=max_x, min_x=min_x, max_y=max_y,
-                                min_y=min_y, legend_pos=legend_pos) + '\n'
+                                min_y=min_y, tick_count=tick_count, legend_pos=legend_pos) + '\n'
     line_count = len(data_list_y[0])
     data_x = None
     steps = int(max(len(data_list_y) / max_entries, 1))

@@ -17,6 +17,7 @@ import socket
 ###############
 import misc_omnisphero as misc
 from misc_omnisphero import *
+from predict_batch_custom import predict_batch_custom
 
 gpu_index_string = "2"
 
@@ -259,20 +260,13 @@ def main(args):
         arg = str(arg).lower()
         print('Evaluating arg: "'+arg+'".')
 
-        if arg == '-p' or arg == '-paths':
+        if arg == '-p' or arg == '-paths' or arg == '-c' or arg == '-custom':
             custom_paths = True
 
     if custom_paths:
         custom_paths_predict()
     else:
         prodi_gpu_predict()
-
-def custom_paths_predict():
-    print('Type in your the absolute path your model is located in:');
-    model_source_path = input1 = input();
-    print('Your input: '+model_source_path);
-
-
 
 def prodi_gpu_predict():
     print('Running Predictions.')
@@ -296,18 +290,20 @@ def prodi_gpu_predict():
     # source_dir_redo_paper_neuron = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_paper/rosi/'
 
     # .h5 dirs to be predicted for efsa or endpoints
-    source_dir_paper_oligo  = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/oligo_20/'
-    source_dir_paper_neuron = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/neuron_20/'
-    
+    source_dir_paper_oligo  = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/oligo_1/'
+    source_dir_paper_neuron = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/neuron_1/'
     source_dir_glia = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/glia_01/'
 
+    initial_sleep_time = 5
+    print(' == Initial Sleeping: ' + str(initial_sleep_time) + ' seconds ... ===')
+    time.sleep(initial_sleep_time)
 
     if use_glia:
         predict_batch(model_source_path=model_source_path_glia, source_dir=source_dir_glia,
                       normalize_enum=4,
                       n_jobs=n_jobs,
                       skip_predicted=skip_predicted,
-                      gpu_index_string="0")
+                      gpu_index_string="1")
 
 
     if use_paper:
@@ -329,7 +325,7 @@ def prodi_gpu_predict():
                           normalize_enum=1,
                           n_jobs=n_jobs,
                           skip_predicted=skip_predicted,
-                          gpu_index_string="0")
+                          gpu_index_string="1")
         if use_oligo:
             predict_batch(model_source_path=model_source_path_oligo, source_dir=source_dir_oligo,
                           normalize_enum=1,
@@ -344,13 +340,13 @@ def prodi_gpu_predict():
                       normalize_enum=4,
                       n_jobs=n_jobs,
                       skip_predicted=False,
-                      gpu_index_string="0")
+                      gpu_index_string="1")
         predict_batch(model_source_path=model_source_path_neuron_paper,
                       source_dir=source_dir_neuron,
                       normalize_enum=4,
                       n_jobs=n_jobs,
                       skip_predicted=False,
-                      gpu_index_string="0")
+                      gpu_index_string="1")
 
     print(gct() + ' All Predictions done. Have a nice day. =)')
 

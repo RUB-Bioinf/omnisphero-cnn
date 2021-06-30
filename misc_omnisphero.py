@@ -268,8 +268,7 @@ def hdf5_loader_worker(filename: str, path: str, pattern: str, suffix_data: str,
     #            worker_x[j][2] = normalize_np(worker_x[j][2], best_well_min[2], best_well_max[2])
     #
     #    del data
-    elif (filename.endswith(suffix_data) or filename.endswith(suffix_data_zipped)) and not filename.endswith(
-            suffix_label):
+    elif filename.endswith(suffix_data) and not filename.endswith(suffix_label):
         worker_x = []
 
         if filename.endswith(suffix_data):

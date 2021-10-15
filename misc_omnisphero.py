@@ -14,6 +14,7 @@ PROJECT: Omnisphero CNN
 # IMPORTS
 ########
 
+from sys import platform
 import io
 import os
 import random
@@ -50,7 +51,8 @@ hdf5_loeader_default_param_verbose: bool = True
 def hdf5_loader(path: str, pattern: str = '_[A-Z][0-9]{2}_', suffix_data: str = '.h5',
                 suffix_data_zipped: str = '.h5.zip', suffix_label: str = '_label.h5',
                 gp_current: int = 0, gp_max: int = 0, normalize_enum: int = 1, n_jobs: int = 1,
-                skip_predicted: bool = False, force_verbose: bool = False):
+                skip_predicted: bool = False, force_verbose: bool = False,
+                load_labels: bool = True, load_samples: bool = True):
     '''Helper function which loads all datasets from a hdf5 file in
     a specified file at a specified path.
 
@@ -84,6 +86,10 @@ def hdf5_loader(path: str, pattern: str = '_[A-Z][0-9]{2}_', suffix_data: str = 
 
     os.chdir(path)
     directory = os.fsencode(path)
+
+    if platform == "linux" or platform == "linux2":
+        os.system('ls ' + str(path) + ' > /dev/null')
+
     directory_contents = os.listdir(directory)
     directory_contents.sort()
     # well_regex = "(\w\d+)_\d+$"
@@ -94,6 +100,9 @@ def hdf5_loader(path: str, pattern: str = '_[A-Z][0-9]{2}_', suffix_data: str = 
         terminal_columns = int(terminal_columns)
     except Exception as e:
         terminal_columns = None
+
+    assert isinstance(suffix_label, str)
+    assert isinstance(suffix_data, str)
 
     n_jobs = max(n_jobs, 1)
     verbose: bool = n_jobs == 1
@@ -127,7 +136,9 @@ def hdf5_loader(path: str, pattern: str = '_[A-Z][0-9]{2}_', suffix_data: str = 
                                  gp_max,  # gp_max
                                  normalize_enum,  # normalize_enum
                                  worker_verbose,  # verbose
-                                 terminal_columns  # terminal_columns#
+                                 terminal_columns,  # terminal_columns#
+                                 load_labels,  # load_labels
+                                 load_samples  # load_samples
                                  )
         future_list.append(future)
 
@@ -188,6 +199,7 @@ def hdf5_loader(path: str, pattern: str = '_[A-Z][0-9]{2}_', suffix_data: str = 
         print('\n' + gct() + ' Finished concurrent execution. Fetching results.')
 
     error_list = []
+    errors_found = False
     for i in range(len(future_list)):
         future = future_list[i]
         if verbose:
@@ -201,11 +213,17 @@ def hdf5_loader(path: str, pattern: str = '_[A-Z][0-9]{2}_', suffix_data: str = 
             if y_w is not None:
                 y.extend(y_w)
         else:
-            print('\n' + gct() + 'Error extracting future results: ' + str(e) + '\n')
+            print('\n' + gct() + 'Error extracting future results: "' + str(e) + '"!\n')
             error_list.append(e)
+            errors_found = True
 
     if verbose:
         print(gct() + ' Fully Finished Loading Path.')
+
+    if errors_found:
+        # Print that there were errors, regardless of verbosity
+        print('## WARNING! ##\nTHERE WAS AT LEAST ONE ERROR WHILE LOADING DATA! - Erorrs: ' + str(len(error_list)))
+        print('Errors: ' + str(len(error_list)) + '/' + str(len(future_list)))
 
     # Deleting the futures and the future list to immediately releasing the memory.
     del future_list[:]
@@ -218,7 +236,7 @@ def hdf5_loader(path: str, pattern: str = '_[A-Z][0-9]{2}_', suffix_data: str = 
 
 def hdf5_loader_worker(filename: str, path: str, pattern: str, suffix_data: str, suffix_data_zipped: str,
                        suffix_label: str, gp_current: int, gp_max: int, normalize_enum: int, verbose: bool,
-                       terminal_columns: int):
+                       terminal_columns: int, load_labels: bool = True, load_samples: bool = True):
     worker_x = None
     worker_y = None
     prediction_file = False
@@ -229,7 +247,14 @@ def hdf5_loader_worker(filename: str, path: str, pattern: str, suffix_data: str,
     well_regex = "(\w\d+)_\d+$"
     well_regex: Pattern = re.compile(well_regex)
 
-    if filename.endswith(suffix_label):
+    assert isinstance(suffix_label, str)
+    assert isinstance(suffix_data, str)
+
+    if filename.endswith(suffix_label) and load_labels:
+        ################
+        # Loading Labels
+        ################
+
         worker_y = []
         with h5py.File(path + os.sep + filename, 'r') as f:
             key_list = list(f.keys())
@@ -268,7 +293,10 @@ def hdf5_loader_worker(filename: str, path: str, pattern: str, suffix_data: str,
     #            worker_x[j][2] = normalize_np(worker_x[j][2], best_well_min[2], best_well_max[2])
     #
     #    del data
-    elif filename.endswith(suffix_data) and not filename.endswith(suffix_label):
+    elif (filename.endswith(suffix_data) and not filename.endswith(suffix_label)) and load_samples:
+        #################
+        # Loading Samples
+        #################
         worker_x = []
 
         if filename.endswith(suffix_data):
@@ -279,9 +307,11 @@ def hdf5_loader_worker(filename: str, path: str, pattern: str, suffix_data: str,
             # Idea: Load the zip file, unzip in ram and load the byte array as an IO stream into h5
             # Hoping this will be faster than reading a default h5 from network disk
 
-            h5_version = h5py.version.version_tuple # Make sure the version is 2.9 or above
+            h5_version = h5py.version.version_tuple  # Make sure the version is 2.9 or above
             if not (h5_version[0] > 2 or (h5_version[0] == 2 and h5_version[1] >= 9)):
-                raise Exception("The import from zip files requires h5py library version 2.9 or higher! Your version: "+str(h5py.__version__))
+                raise Exception(
+                    "The import from zip files requires h5py library version 2.9 or higher! Your version: " + str(
+                        h5py.__version__))
 
             input_zip = ZipFile(path + os.sep + filename)
             zipped_data_name = input_zip.namelist()[0]
@@ -307,7 +337,8 @@ def hdf5_loader_worker(filename: str, path: str, pattern: str, suffix_data: str,
 
             if verbose:
                 line_print("Reading data file: " + filename + " - Current dataset key: " + str(
-                    key) + " ["+str(k)+"/"+str(len(key_list))+"]. Well: " + current_well + " [" + str(gp_current) + "/" + str(gp_max) + "]",
+                    key) + " [" + str(k) + "/" + str(len(key_list)) + "]. Well: " + current_well + " [" + str(
+                    gp_current) + "/" + str(gp_max) + "]",
                            max_width=terminal_columns)
 
             current_x = np.array(f[str(key)])
@@ -409,7 +440,8 @@ def read_hdf5_content(f: h5py.File, gp_current, gp_max, pattern: Pattern, filena
 
 def multiple_hdf5_loader(path_list: [str], pattern: str = '_[A-Z][0-9]{2}_', suffix_data: str = '.h5',
                          suffix_label: str = '_label.h5', n_jobs: int = 1, single_thread_loading: bool = False,
-                         gp_current: int = 0, gp_max: int = 0, normalize_enum: int = 1, force_verbose: bool = False):
+                         gp_current: int = 0, gp_max: int = 0, normalize_enum: int = 1, force_verbose: bool = False,
+                         load_labels: bool = True, load_samples: bool = True):
     '''Helper function which loads all datasets from targeted hdf5 files in
     a specified folder. Returns X and y arrays containing all of them.
     This function uses hdf5_loader.
@@ -432,6 +464,9 @@ def multiple_hdf5_loader(path_list: [str], pattern: str = '_[A-Z][0-9]{2}_', suf
         terminal_columns = int(terminal_columns)
     except Exception as e:
         terminal_columns = None
+
+    assert isinstance(suffix_label, str)
+    assert isinstance(suffix_data, str)
 
     n_jobs = max(n_jobs, 1)
     if single_thread_loading:
@@ -460,13 +495,16 @@ def multiple_hdf5_loader(path_list: [str], pattern: str = '_[A-Z][0-9]{2}_', suf
                                  path,
                                  pattern,  # hdf5_loeader_default_param_pattern
                                  suffix_data,  # hdf5_loeader_default_param_suffix_data
+                                 '.h5.zip',  # suffix_data_zipped
                                  suffix_label,  # hdf5_loeader_default_param_suffix_label
                                  i,  # hdf5_loeader_default_param_gp_current
                                  l,  # hdf5_loeader_default_param_gp_max
                                  normalize_enum,  # hdf5_loeader_default_param_normalize_enum
                                  worker_threads,  # n_jobs: int = 1
                                  False,  # skip_predicted
-                                 force_verbose  # hdf5_loeader_default_param_verbose
+                                 force_verbose,  # hdf5_loeader_default_param_verbose
+                                 load_labels,  # load_labels
+                                 load_samples  # load_samples
                                  )
         future_list.append(future)
         i = i + 1
@@ -520,7 +558,7 @@ def multiple_hdf5_loader(path_list: [str], pattern: str = '_[A-Z][0-9]{2}_', suf
             if len(errors) > 0:
                 error_list.extend(errors)
         else:
-            print('Error extracting future results: ' + str(e))
+            print('Error extracting future results: "' + str(e) + '"!')
             error_list.append(e)
 
     print(gct() + ' Finished Loading.')
@@ -651,6 +689,9 @@ def create_smote_handler(random_state: int = None, n_jobs: int = 1, k_neighbors:
 
 
 def get_immediate_subdirectories(a_dir):
+    if platform == "linux" or platform == "linux2":
+        os.system('ls ' + str(a_dir) + ' > /dev/null')
+
     return [name for name in os.listdir(a_dir)
             if os.path.isdir(os.path.join(a_dir, name))]
 

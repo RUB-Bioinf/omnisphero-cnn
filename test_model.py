@@ -47,13 +47,15 @@ img_dpi_default = 450
 label = 'cnn-test'
 cuda_devices_default = "0"
 
-def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi: int=img_dpi_default, cuda_devices: str=cuda_devices_default,
-             include_date: bool = True, label: str = 'cnn-test',n_jobs:int = 1):
+
+def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi: int = img_dpi_default,
+             cuda_devices: str = cuda_devices_default,
+             include_date: bool = True, label: str = 'cnn-test', n_jobs: int = 1):
     os.environ["CUDA_VISIBLE_DEVICES"] = cuda_devices
 
     print(' ### Testing CNN! ###')
-    print('Model path: '+model_path)
-    print('Test Data path: '+test_data_path)
+    print('Model path: ' + model_path)
+    print('Test Data path: ' + test_data_path)
 
     # TESTING
     fig_path = model_path + os.sep + label
@@ -75,7 +77,9 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
 
     print('Loading test data: ' + test_data_path)
     y_test = np.empty((0, 1))
-    X_test, y_test, test_loading_errors,_ = misc.hdf5_loader(test_data_path, gp_current=1, gp_max=1, normalize_enum=normalize_enum, n_jobs=n_jobs, force_verbose = True)
+    X_test, y_test, test_loading_errors, _ = misc.hdf5_loader(test_data_path, gp_current=1, gp_max=1,
+                                                              normalize_enum=normalize_enum, n_jobs=n_jobs,
+                                                              force_verbose=True)
     print('Finished loading test data.')
 
     print('Done. Preprocessing test data.')
@@ -95,7 +99,7 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
     test_out_file = fig_path + 'test_data.txt'
     try:
         f = open(test_out_file, 'w')
-        f.write('Data Source Path: '+test_data_path+'\n\n')
+        f.write('Data Source Path: ' + test_data_path + '\n\n')
 
         f.write('X_test shape: ' + str(X_test.shape) + '\n')
         f.write('y_test shape: ' + str(y_test.shape) + '\n')
@@ -103,12 +107,14 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
         f.write('Read class 1 count: ' + str(np.count_nonzero(y_test == 1)) + '\n')
         f.close()
     except Exception as e:
+        print(str(e))
         pass
 
     try:
-        # Preditcing Test Data
+        # Predicting Test Data
         print('Trying to predict test data')
         y_pred_roc = model.predict(X_test)  # .ravel()
+        # y_pred_roc = misc.sigmoid_binary(y_pred_roc)
 
         # PRECISION RECALL CURVE
         lr_precision, lr_recall, lr_thresholds = precision_recall_curve(y_test, y_pred_roc)
@@ -140,18 +146,19 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
         f.write('Baseline: ' + str(lr_no_skill) + '\n')
         f.write('i;Recall;Precision;Thresholds\n')
         for i in range(len(lr_precision)):
+            text_thresholds = 'NaN'
+            if i < len(lr_thresholds):
+                text_thresholds = str(lr_thresholds[i])
             f.write(
-                str(i + 1) + ';' + str(lr_recall[i]) + ';' + str(lr_precision[i]) + ';' + str(lr_precision[i]) + ';\n')
+                str(i + 1) + ';' + str(lr_recall[i]) + ';' + str(lr_precision[i]) + ';' + text_thresholds + ';\n')
         f.close()
 
         # ROC CURVE
         print('Calculating roc curve.')
-
         # ROC stuff info:
         # Source: https://stackoverflow.com/questions/41032551/how-to-compute-receiving-operating-characteristic-roc-and-auc-in-keras
 
         fpr_roc, tpr_roc, thresholds_roc = roc_curve(y_test, y_pred_roc)
-
         print('Calculating AUC.')
         auc_roc = auc(fpr_roc, tpr_roc)
 
@@ -177,9 +184,12 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
         print('Saving raw ROC data: ' + fig_path)
         f = open(fig_path + "roc_data_raw.csv", 'w+')
         f.write('i;FPR;TPR;Thresholds\n')
-        for i in range(len(thresholds_roc)):
+        for i in range(len(fpr_roc)):
+            text_thresholds = 'NaN'
+            if i < len(lr_thresholds):
+                text_thresholds = str(thresholds_roc[i])
             f.write(
-                str(i + 1) + ';' + str(fpr_roc[i]) + ';' + str(tpr_roc[i]) + ';' + str(thresholds_roc[i]) + ';\n')
+                str(i + 1) + ';' + str(fpr_roc[i]) + ';' + str(tpr_roc[i]) + ';' + text_thresholds + ';\n')
         f.close()
 
         # HISTOGRAM
@@ -267,7 +277,7 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
         f = open(fig_path + "rocError.txt", 'w+')
 
         try:
-            f.write(str(e)+'\n')
+            f.write(str(e) + '\n')
 
             # Printing the stack trace to the file
             exc_info = sys.exc_info()
@@ -300,15 +310,23 @@ def main():
     pi3 = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_test_PaperIndividuum3/'
     paper_individuum_model = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/training/debug/paper-final_datagen/neuron_kontrolliert_PaperIndividuum2/'
 
+    model_path_paper_oligo = '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/models/paper/CNN/training/debug/paper-individual1-oligo/'
+    pi1 = '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/test-ind1/'
+    pi2 = '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/test-ind2/'
+    pi3 = '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/test-ind4/'
+    p123 = '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/test/'
+
     print("Running CNN test.")
 
     if paper_mode:
-        test_cnn('/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/debug/paper-final_datagen/oligo-normalize0/', test_data_path_oligo_filter_erneut, normalize_enum=0, cuda_devices="0", label='cnn-normalize-redo',n_jobs=22)
-        test_cnn('/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/debug/paper-final_datagen/oligo-normalize1/', test_data_path_oligo_filter_erneut, normalize_enum=1, cuda_devices="0", label='cnn-normalize-redo',n_jobs=22)
-        test_cnn('/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/debug/paper-final_datagen/oligo-normalize2/', test_data_path_oligo_filter_erneut, normalize_enum=2, cuda_devices="0", label='cnn-normalize-redo',n_jobs=22)
-        test_cnn('/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/debug/paper-final_datagen/oligo-normalize3/', test_data_path_oligo_filter_erneut, normalize_enum=3, cuda_devices="0", label='cnn-normalize-redo',n_jobs=22)
-        test_cnn('/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/debug/paper-final_datagen/oligo-normalize4/', test_data_path_oligo_filter_erneut, normalize_enum=4, cuda_devices="0", label='cnn-normalize-redo',n_jobs=22)
-
+        test_cnn(model_path_paper_oligo, pi1, n_jobs=25, normalize_enum=4, cuda_devices="3",
+                 label='cnn-individuum1-test')
+        test_cnn(model_path_paper_oligo, pi2, n_jobs=25, normalize_enum=4, cuda_devices="3",
+                 label='cnn-individuum2-test')
+        test_cnn(model_path_paper_oligo, pi3, n_jobs=25, normalize_enum=4, cuda_devices="3",
+                 label='cnn-individuum3_test')
+        test_cnn(model_path_paper_oligo, p123, n_jobs=25, normalize_enum=4, cuda_devices="3",
+                 label='cnn-individuumAll-test')
         return
 
     if oligo_mode:
@@ -317,9 +335,12 @@ def main():
     if neuron_mode:
         test_cnn(n1, test_data_path_neuron, normalize_enum, cuda_devices="0", label='cnn-debug-test')
     if debug_mode:
-        test_cnn(paper_individuum_model, pi1, n_jobs=15, normalize_enum=4, cuda_devices="3", label='cnn-individuum1-test')
-        test_cnn(paper_individuum_model, pi2, n_jobs=15, normalize_enum=4, cuda_devices="3", label='cnn-individuum2-test')
-        test_cnn(paper_individuum_model, pi3, n_jobs=15, normalize_enum=4, cuda_devices="3", label='cnn-individuum3-test')
+        test_cnn(paper_individuum_model, pi1, n_jobs=15, normalize_enum=4, cuda_devices="3",
+                 label='cnn-individuum1-test')
+        test_cnn(paper_individuum_model, pi2, n_jobs=15, normalize_enum=4, cuda_devices="3",
+                 label='cnn-individuum2-test')
+        test_cnn(paper_individuum_model, pi3, n_jobs=15, normalize_enum=4, cuda_devices="3",
+                 label='cnn-individuum4-test')
 
     print('Testing done.')
 

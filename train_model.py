@@ -35,285 +35,106 @@ p_allow_growth: bool = False
 gpu_index_string = "0"
 # gpuIndexString = "0,1,2"
 
-# =========== List of all available neuron experiments on SAS15 ============================================================================
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS81_trainingData_neuron/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/FJK125_trainingData_neuron/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/FJK130_trainingData_neuron/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK96_trainingData_neuron/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS79_BIS-I_NPC2-5_062_trainingData_neuron/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK122_trainingData_neuron/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/EKB5_trainingData_neuron/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ESM9_trainingData_neuron/'
+# Glia Paths
 
-# =========== List of all available oligo experiments on SAS15 ============================================================================
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS81_trainingData_oligo/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS79_trainingData_oligo/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK122_trainingData_oligo/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK95_trainingData_oligo/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK153_trainingData_oligo/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK155_trainingData_oligo/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK156_trainingData_oligo/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/EKB5_trainingData_oligo/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ESM9_trainingData_oligo/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ESM10_trainingData_oligo/'
-# '/bph/puredata4/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/MP70_trainingData_oligo/'
-
-all_neurons = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS81_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/FJK125_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/FJK130_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK96_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ELS79_BIS-I_NPC2-5_062_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/JK122_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/EKB5_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/neuron/ESM9_trainingData_neuron/'
+glia_path_train = [
+    '/home/nilfoe/bioinf/Omnisphero/CNN-glia/training/glia/JK247_ECM pretreated_trainingData_glia',
+    '/home/nilfoe/bioinf/Omnisphero/CNN-glia/training/glia/JK247_spheres pretreated_trainingData_glia',
+    '/home/nilfoe/bioinf/Omnisphero/CNN-glia/training/glia/JK274_normal_trainingData_glia',
+    '/home/nilfoe/bioinf/Omnisphero/CNN-glia/training/glia/VJK135_trainingData_glia',
+    '/home/nilfoe/bioinf/Omnisphero/CNN-glia/training/glia/VJK136_trainingData_glia'
 ]
 
-all_oligos = [
-    # Defect experiments
-    # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK95_trainingData_oligo/',
+glia_path_test = '/home/nilfoe/bioinf/Omnisphero/CNN-glia/test/glia/'
 
-    # PRODI Paths
-    # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/ELS81_trainingData_oligo/',
-    # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/ELS79_BIS-I_NPC2-5_062_trainingData_oligo/',
-    # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK122_trainingData_oligo/',
-    # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK153_trainingData_oligo/',
-    # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK155_trainingData_oligo/',
-    # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/JK156_trainingData_oligo/',
-    # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/EKB5_trainingData_oligo/',
-    # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/ESM9_trainingData_oligo/',
-    # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/ESM10_trainingData_oligo/',
-    # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/MP66_trainingData_oligo/',
-    # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/MP67_trainingData_oligo/',
-    # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/MP70_trainingData_oligo/'
-
-    # LOCAL PATHS
-    # '/home/nilfoe/CNN/oligo/ELS81_trainingData_oligo/',
-    # '/home/nilfoe/CNN/oligo/ELS79_BIS-I_NPC2-5_062_trainingData_oligo/',
-    # '/home/nilfoe/CNN/oligo/JK122_trainingData_oligo/',
-    # '/home/nilfoe/CNN/oligo/JK153_trainingData_oligo/',
-    # '/home/nilfoe/CNN/oligo/JK155_trainingData_oligo/',
-    # '/home/nilfoe/CNN/oligo/JK156_trainingData_oligo/',
-    # '/home/nilfoe/CNN/oligo/EKB5_trainingData_oligo/',
-    # '/home/nilfoe/CNN/oligo/ESM9_trainingData_oligo/',
-    # '/home/nilfoe/CNN/oligo/ESM10_trainingData_oligo/',
-    # '/home/nilfoe/CNN/oligo/MP66_trainingData_oligo/',
-    # '/home/nilfoe/CNN/oligo/MP67_trainingData_oligo/',
-    # '/home/nilfoe/CNN/oligo/MP70_trainingData_oligo/'
+glia_path_val = [
+    '/home/nilfoe/bioinf/Omnisphero/CNN-glia/validation/glia/'
 ]
 
+#
+# NEURONS AND OLIGOS
+#
+
+gpu_index_string = "0"
+# gpuIndexString = "0,1,2"
+
+#########################################################################################################
 # FINAL NERON & OLIGO PATHS
-final_neurons = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron/combinedVal_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron/EKB5_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron/ELS79_BIS-I_NPC2-5_062_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron/ELS81_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron/ESM9_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron/FJK125_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron/FJK130_trainingData_neuron/',
+#########################################################################################################
 
-    # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron/JK96_trainingData_neuron/',
+neuron_train = [
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/neuron/train/EKB5_trainingData_neuron/',
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/neuron/train/ELS79_BIS-I_NPC2-5_062_trainingData_neuron/',
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/neuron/train/ELS81_trainingData_neuron/',
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/neuron/train/ESM9_trainingData_neuron/',
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/neuron/train/FJK125_trainingData_neuron/',
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/neuron/train/FJK130_trainingData_neuron/',
 
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron/JK122_trainingData_neuron/'
+    # '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/neuron/train/JK96_trainingData_neuron/',
+
+    '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/neuron/train/JK122_trainingData_neuron/'
 ]
 
-final_neurons_validated_validation_set = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_val/']
+neuron_validation = [
+    '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/neuron/validation/']
 
-final_neurons_validated_validation_set_reorder = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_val_reorder/']
-
-final_neurons_validated = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train/EKB5_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train/ELS470_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train/ELS79_BIS-I_NPC2-5_062_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train/ELS81_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train/ESM49_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train/ESM9_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train/FJK125_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train/FJK130_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train/JK122_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train/JK242_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train/MP149_trainingData_neuron/'
-]
-
-final_neurons_validated_reorder = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_reorder/EKB5_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_reorder/ELS470_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_reorder/ELS79_BIS-I_NPC2-5_062_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_reorder/ELS81_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_reorder/ESM49_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_reorder/ESM9_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_reorder/FJK125_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_reorder/JK242_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_reorder/MP149_trainingData_neuron/'
-]
-
-final_neurons_adjusted_only = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_adjustedOnly/combinedVal_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_adjustedOnly/EKB5_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_adjustedOnly/ELS79_BIS-I_NPC2-5_062_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_adjustedOnly/ELS81_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_adjustedOnly/ESM9_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_adjustedOnly/FJK125_trainingData_neuron/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_adjustedOnly/FJK130_trainingData_neuron/',
-
-    # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron/JK96_trainingData_neuron/',
-
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron/JK122_trainingData_neuron/'
-]
+neuron_test = '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/neuron/test/'
 
 #########################################################################################################
 #########################################################################################################
 #########################################################################################################
 
-final_oligos = [
-    # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/ELS81_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/combinedVal_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/EKB5_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/ELS79_BIS-I_NPC2-5_062_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/ESM9_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/ESM10_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/JK95_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/JK122_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/JK155_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/JK156_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/MP66_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/MP67_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/MP70_trainingData_oligo/'
+oligos_train = [
+    # '/prodi/bioinfdata/work/omnisphero/CNN/training/oligo/ELS81_trainingData_oligo/',
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/train/EKB5_trainingData_oligo/',
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/train/ELS79_BIS-I_NPC2-5_062_trainingData_oligo/',
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/train/ESM9_trainingData_oligo/',
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/train/ESM10_trainingData_oligo/',
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/train/JK95_trainingData_oligo/',
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/train/JK122_trainingData_oligo/',
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/train/JK155_trainingData_oligo/',
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/train/JK156_trainingData_oligo/',
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/train/MP66_trainingData_oligo/',
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/train/MP67_trainingData_oligo/',
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/train/MP70_trainingData_oligo/'
 ]
 
-final_oligos_validated_validation_set = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_val/']
+oligos_validation = [
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/validation/']
 
-final_oligos_validated_validation_set_reorder = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_val_reorder/']
+oligos_test = '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/test/'
 
-final_oligos_validated = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/EKB5_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/ELS470_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/ELS79_BIS-I_NPC2-5_062_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/ESM10_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/ESM49_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/ESM9_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/JK122_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/JK153_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/JK155_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/JK156_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/JK242_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/JK95_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/MP149_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/MP66_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/MP67_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train/MP70_trainingData_oligo/'
+#########################################################################################################
+#########################################################################################################
+#########################################################################################################
+
+# Paths for paper revisions
+oligos_train_ind1 = [
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/train/ELS79_BIS-I_NPC2-5_062_trainingData_oligo/',
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/train/JK122_trainingData_oligo/',
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/train/EKB5_trainingData_oligo/',
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/train/ESM9_trainingData_oligo/',
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/train/JK153_trainingData_oligo/',
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/train/JK155_trainingData_oligo/',
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/train/ESM49_trainingData_oligo/',
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/train/MP149_trainingData_oligo/'
 ]
 
-final_oligos_validated_reorder = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/EKB5_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/ELS79_BIS-I_NPC2-5_062_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/ESM10_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/ESM49_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/ESM9_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/JK153_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/JK155_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/JK156_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/JK242_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/JK95_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/MP149_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/MP66_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_reorder/MP70_trainingData_oligo/'
-]
-
-final_oligos_adjusted_only = [
-    # '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo/ELS81_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_adjustedOnly/combinedVal_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_adjustedOnly/EKB5_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_adjustedOnly/ELS79_BIS-I_NPC2-5_062_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_adjustedOnly/ESM9_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_adjustedOnly/ESM10_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_adjustedOnly/JK95_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_adjustedOnly/JK122_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_adjustedOnly/JK155_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_adjustedOnly/JK156_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_adjustedOnly/MP66_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_adjustedOnly/MP67_trainingData_oligo/',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_adjustedOnly/MP70_trainingData_oligo/'
-]
-
-debug_neurons = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_debug/EKB5_trainingData_neuron/'
-]
-
-debug_oligos = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_debug/EKB5_trainingData_oligo/'
-]
-
-debug_oligos_validation = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_debug_val/'
-]
-
-# Training only on Individuum 1
-
-paper_individuum_path_train = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_PaperIndividuum1/ELS79_BIS-I_NPC2-5_062_trainingData_neuron',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_PaperIndividuum1/ELS81_trainingData_neuron',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_PaperIndividuum1/ESM9_trainingData_neuron',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_PaperIndividuum1/FJK125_trainingData_neuron',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_PaperIndividuum1/FJK130_trainingData_neuron',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_PaperIndividuum1/JK122_trainingData_neuron'
-]
-paper_individuum_path_val = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_val_PaperIndividuum1/']
-
-# Training with Bleedthrough Experiments
-
-neuron_paper_bleedthrough_path_train = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_bleedthrough/EKB5_trainingData_neuron',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_bleedthrough/ELS79_BIS-I_NPC2-5_062_trainingData_neuron',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_bleedthrough/ESM9_trainingData_neuron',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_bleedthrough/ESM49_trainingData_neuron',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_bleedthrough/JK122_trainingData_neuron',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_bleedthrough/JK242_trainingData_neuron',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_bleedthrough/MP149_trainingData_neuron',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_train_bleedthrough/ELS470_trainingData_neuron'
-]
-neuron_paper_bleedthrough_path_val = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_val_bleedthrough/']
-neuron_paper_bleedthrough_path_test = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_test_bleedthrough/'
-
-oligo_paper_bleedthrough_path_train = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_bleedthrough/EKB5_trainingData_oligo',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_bleedthrough/ELS79_BIS-I_NPC2-5_062_trainingData_oligo',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_bleedthrough/ESM9_trainingData_oligo',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_bleedthrough/ESM49_trainingData_oligo',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_bleedthrough/JK122_trainingData_oligo',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_bleedthrough/JK242_trainingData_oligo',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_bleedthrough/MP149_trainingData_oligo',
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_train_bleedthrough/ELS470_trainingData_oligo',
-]
-oligo_paper_bleedthrough_path_val = [
-    '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_val_bleedthrough/']
-oligo_paper_bleedthrough_path_test = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_test_bleedthrough/'
+oligos_validation_ind1 = [
+    '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/final/oligo/validation-ind1/']
 
 #####################################################################
+out_path = '/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/train/models/paper/CNN/training/debug/'
+
+#####################################################################
+
 
 # SCRABLING
 #################
 
-# outPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/64x_unbalanced_histAdjusted_discard0/oligo/results/roc_results_no81/'
-# outPath = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/models/debug-kontrolliert-weighted/neuron-n4-ep1500/'
-# outPath = '/bph/home/nilfoe/Documents/CNN/results/neurons_final_softmax400/'
-
-# outPath = '/bph/puredata3/work/sas15_mirror_nils/cnn/models/debug-kontrolliert-unweighted/neuron-n4-ep1500/'
-out_path = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/debug/'
-
 # Test Data Old
 # test_data_path = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/oligo/EKB25_trainingData_oligo/'
 # test_data_path = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/neuron/EKB25_trainingData_neuron/'
-
-# Test Data Validated
-test_data_path_oligo = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/oligo_kontrolliert_test/'
-test_data_path_neuron = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/training/neuron_kontrolliert_test/'
 
 #####################################################################
 
@@ -756,7 +577,6 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
 
         print('WARNING! There seems to be an issue with multi gpu and batch validation size!!')
         # https://github.com/keras-team/keras/issues/11434#issuecomment-439832556
-    
 
     print("Compiling model...")
     model.compile(loss=lossEnum, optimizer=optimizer, metrics=metrics)
@@ -1183,80 +1003,34 @@ def decode_history_key(key: str) -> str:
     return key
 
 
-glia_path_train = [
-    '/home/nilfoe/bioinf/Omnisphero/CNN-glia/training/glia/JK247_ECM pretreated_trainingData_glia',
-    '/home/nilfoe/bioinf/Omnisphero/CNN-glia/training/glia/JK247_spheres pretreated_trainingData_glia',
-    '/home/nilfoe/bioinf/Omnisphero/CNN-glia/training/glia/JK274_normal_trainingData_glia',
-    '/home/nilfoe/bioinf/Omnisphero/CNN-glia/training/glia/VJK135_trainingData_glia',
-    '/home/nilfoe/bioinf/Omnisphero/CNN-glia/training/glia/VJK136_trainingData_glia'
-]
-
-glia_path_test = '/home/nilfoe/bioinf/Omnisphero/CNN-glia/test/glia/'
-
-glia_path_val = [
-    '/home/nilfoe/bioinf/Omnisphero/CNN-glia/validation/glia/'
-]
-
-
 def main():
     # AUGMENTATION
     data_gen = get_default_augmenter()
-    n_jobs = 20
+    n_jobs = 35
 
-    out_path = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN-glia/models/glia-extendedData/'
+    out_path_base = out_path + 'paper-final_no-datagen' + os.sep
+    out_path_oligo = out_path_base + 'oligo' + os.sep
+    out_path_neuron = out_path_base + 'neuron' + os.sep
+
+    out_path_oligo_debug = out_path_base + 'oligo_debug' + os.sep
 
     print('Sleeping....')
-    # time.sleep(18000)
+    time.sleep(5)
 
-    train_model(
-        training_path_list=glia_path_train,
-        validation_path_list=glia_path_val,
-        test_data_path=glia_path_test,
-        use_SMOTE=False,
-        out_path=out_path + 'base' + os.sep,
-        gpu_index_string="0",
-        optimizer='SGD',
-        n_jobs=n_jobs,
-        epochs=5000
-    )
+    oligo_mode = True
+    neuron_mode = False
+    debug_mode = False
 
-    train_model(
-        training_path_list=glia_path_train,
-        validation_path_list=glia_path_val,
-        test_data_path=glia_path_test,
-        use_SMOTE=False,
-        out_path=out_path + 'datagen' + os.sep,
-        gpu_index_string="0",
-        optimizer='SGD',
-        n_jobs=n_jobs,
-        data_gen=data_gen,
-        epochs=5000
-    )
-
-    train_model(
-        training_path_list=glia_path_train,
-        validation_path_list=glia_path_val,
-        test_data_path=glia_path_test,
-        use_SMOTE=True,
-        out_path=out_path + 'smote' + os.sep,
-        gpu_index_string="0",
-        optimizer='SGD',
-        n_jobs=n_jobs,
-        epochs=5000
-    )
-
-    train_model(
-        training_path_list=glia_path_train,
-        validation_path_list=glia_path_val,
-        test_data_path=glia_path_test,
-        use_SMOTE=True,
-        out_path=out_path + 'datagen_and_smote' + os.sep,
-        gpu_index_string="0",
-        optimizer='SGD',
-        n_jobs=n_jobs,
-        data_gen=data_gen,
-        epochs=5000
-    )
+    if oligo_mode:
+        train_model(
+            training_path_list=oligos_train_ind1,
+            validation_path_list=oligos_validation_ind1,
+            test_data_path=oligos_test,
+            data_gen=data_gen,
+            n_jobs=35,
+            out_path=out_path + 'paper-individual1-oligo' + os.sep,
+            gpu_index_string="0"
+        )
 
     print('Finished all trainings. Goodbye.')
 

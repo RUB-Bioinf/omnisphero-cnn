@@ -8,6 +8,7 @@ Joshua Butke
 #########
 
 import sys
+from sys import platform
 import pandas as pd
 from keras.models import load_model
 import getpass
@@ -19,37 +20,15 @@ import misc_omnisphero as misc
 from misc_omnisphero import *
 from predict_batch_custom import predict_batch_custom
 
-gpu_index_string = "2"
+gpu_index_string = "3"
 
 # MODELS IN USE
-# Default trained for N1 normalisation
-model_source_path_oligo = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/models/results/oligo_final_sigmodal/0_custom/'
-model_source_path_neuron = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/models/results/neuron_final_sigmodal/0_custom/'
+# Default trained for N4 normalisation
+default_model_source_path_oligo = '/prodi/bioinfdata/work/Omnisphero/CNN/diff/models/oligo/'
+default_model_source_path_neuron = '/prodi/bioinfdata/work/Omnisphero/CNN/diff/models/neuron/'
 
-# MODELS TO DEBUG THAT FEATURE N4 NORMALISATION
-# modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/debug-normalizing/oligo-n4/0_custom/'
-# modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/debug-normalizing/neuron-n4/0_custom/'
-
-# MODELS TO BE VALIDATED
-# modelSourcePath = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/models/oligo_fieldTest_WObrightness_longer/0_custom/'
-
-source_dir_oligo = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/oligo_18/'
-source_dir_neuron = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/neuron_18/'
-
-source_dir_paper_redo_oligo  = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/oligo_6/'
-source_dir_paper_redo_neuron = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/neuron_6/'
-
-# ######### To validate, use these whole well experiments: #########
-# source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/oligo/unannotated/'
-# source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/wholeWell/neuron/unannotated/'
-
-# Source dir debugs
-# source_dir = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/debug/2020_mar_set_oligo'
-# source_dir = '/prodi/bioinf/bioinfdata/work/Omnisphero/CNN/debug/2020_mar_set_neuron'
-
-# Sorce dir with overexposure experiments
-# source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/debug/oligo_norm/'
-# source_dir = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/debug/neuron_norm/'
+default_source_dirs_oligo = ['/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/pred/oligo18/']
+default_source_dirs_neuron = ['/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/pred/neuron18/']
 
 # normalize_enum is an enum to determine normalisation as follows:
 # 0 = no normalisation
@@ -69,13 +48,13 @@ def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int =
     time.sleep(4)
 
     f = open(source_dir + os.sep + 'protocoll.txt', 'w')
-    f.write('Host: '+str(getpass.getuser())+'\n')
-    f.write('User: '+str(socket.gethostname())+'\n')
-    f.write('Timestamp: '+gct()+'\n\n')
-    f.write('Model path: '+model_source_path+'\n')
-    f.write('GPUs: '+gpu_index_string+'\n')
-    f.write('Skip predicted: '+str(skip_predicted)+'\n')
-    f.write('Normalize enum: '+str(normalize_enum)+'\n')
+    f.write('Host: ' + str(getpass.getuser()) + '\n')
+    f.write('User: ' + str(socket.gethostname()) + '\n')
+    f.write('Timestamp: ' + gct() + '\n\n')
+    f.write('Model path: ' + model_source_path + '\n')
+    f.write('GPUs: ' + gpu_index_string + '\n')
+    f.write('Skip predicted: ' + str(skip_predicted) + '\n')
+    f.write('Normalize enum: ' + str(normalize_enum) + '\n')
     f.close()
 
     gpu_indexes = list(gpu_index_string.replace(",", ""))
@@ -118,6 +97,7 @@ def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int =
 
         if "unannotated" not in folder:
             print('Ignoring non-data folder: "' + folder + '"')
+            print('The input folder must contain the keyword "unannotated" to be eligible for prediction!')
             continue
 
         print('Loading prediction data.')
@@ -126,6 +106,7 @@ def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int =
                                                                     gp_max=global_progress_max,
                                                                     normalize_enum=normalize_enum,
                                                                     skip_predicted=skip_predicted,
+                                                                    load_labels=False,
                                                                     n_jobs=n_jobs, force_verbose=True)
 
         if skipped:
@@ -135,12 +116,23 @@ def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int =
             else:
                 print('This folder was already predicted. Predicting it again.')
 
+        if len(loading_errors) > 0:
+            print('Number of errors while loading: ' + str(len(loading_errors)))
+            for i in range(len(loading_errors)):
+                print('Error #' + str((i + 1)) + ': ' + str(loading_errors[i]))
+
         if len(X_to_predict) == 0:
             print(' ==[!! WARNING !!]== No wells have been loaded! Experiment skipped.')
             continue
 
+        X_size = 0
+        for i in range(len(X_to_predict)):
+            X_size = X_size + X_to_predict[i].nbytes
+        X_size = convert_size(X_size)
+        print('Number of files loaded: ' + str(len(X_to_predict)) + '. Size in memory: ' + X_size)
+
         try:
-            #print('X_to_predict len: ' + str(len(X_to_predict)))
+            # print('X_to_predict len: ' + str(len(X_to_predict)))
             X_to_predict = np.asarray(X_to_predict)
             temp2 = X_to_predict.shape
             temp = np.moveaxis(X_to_predict, 1, 3)
@@ -149,11 +141,21 @@ def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int =
         except Exception as e:
             print(
                 ' ==[!! WARNING !!]==\nFailed to convert X_to_predict to np array and determine its shape. This is a fatal error! Experiment skipped.')
-            print(e)
+
+            if isinstance(e, MemoryError):
+                print('==[MEMORY ERROR]== Ran out of memory. This device has not enough RAM for the '+len(X_to_predict)+' files loaded!')
+
+            if isinstance(X_to_predict, list):
+                print('Failed to convert the data to numpy.')
+            else:
+                print('The dada was converted to numpy, but the shape could not be determined.')
+
+            print('Exception: ' + str(e))
+            del X_to_predict
             continue
 
         # process data
-        print(gct()+" Loaded data to be predicted has shape: " + str(X_to_predict.shape)+'. Correcting axis.')
+        print(gct() + " Loaded data to be predicted has shape: " + str(X_to_predict.shape) + '. Correcting axis.')
         X_to_predict = np.moveaxis(X_to_predict, 1, 3)
         print("Preprocessed data to be predicted has shape: " + str(X_to_predict.shape))
 
@@ -176,6 +178,10 @@ def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int =
         path_to_csv = str(folder)
         os.chdir(path_to_csv)
         directory_csv = os.fsencode(path_to_csv)
+
+        if platform == "linux" or platform == "linux2":
+            os.system('ls ' + str(folder) + ' > /dev/null')
+
         directory_csv_contents = os.listdir(directory_csv)
         directory_csv_contents.sort()
         start_point = 0
@@ -194,7 +200,7 @@ def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int =
 
                 try:
                     # reading
-                    print(f'Manipulating: ' + str(filename), end="\r")
+                    print(f'Writing CSV: ' + str(filename), end="\r")
                     df = pd.read_csv(filename, delimiter=';')
                     df_length = len(df['label'])
                     df['label'] = binary_label[start_point:start_point + df_length]
@@ -205,7 +211,7 @@ def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int =
                     # TODO display error and stacktrace
                     try:
                         error_filename = path_to_csv + os.sep + split_name + '-error.txt'
-                        ef = open(error_filename,'w')
+                        ef = open(error_filename, 'w')
                         ef.write(str(e))
                         ef.close()
 
@@ -221,54 +227,37 @@ def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int =
         np.save(path_to_csv + "-all_prediction.npy", label)
         np.savetxt(path_to_csv + "-all_prediction.csv", label, delimiter=';')
 
-        # if label.size < 35000:
-        #    print('Saving positive Histogram')
-        #    hist_pos = label[np.where(label > 0.5)]
-        #    plt.hist(hist_pos, bins='auto')
-        #    plt.title("Histogram: Positive")
-        #    plt.savefig(path_to_csv + '/histogram_1.png')
-        #    plt.clf()
-        #    print('Saving negative Histogram')
-        #    hist_neg = label[np.where(label <= 0.5)]
-        #    plt.hist(hist_neg, bins='auto')
-        #    plt.title("Histogram: Negative")
-        #    plt.savefig(path_to_csv + '/histogram_0.png')
-        #    plt.clf()
-        #    print('Saving whole Histogram')
-        #    plt.hist(label, bins='auto')
-        #    plt.title("Histogram: All")
-        #    plt.savefig(path_to_csv + '/histogram_all.png')
-        #    plt.clf()
-        #    print('Saving capped Histogram')
-        #    plt.hist(label, bins='auto')
-        #    plt.title("Histogram: All [Capped]")
-        #    axes = plt.gca()
-        #    axes.set_ylim([0, 2000])
-        #    axes.set_xlim([0, 1])
-        #    plt.savefig(path_to_csv + '/histogram_all2.png')
-        #    plt.clf()
-        # else:
-        #    print('Too many labels predicted. Histogram skipped.')
+
+def convert_size(size_bytes):
+    if size_bytes == 0:
+        return "0B"
+    size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+    i = int(math.floor(math.log(size_bytes, 1024)))
+    p = math.pow(1024, i)
+    s = round(size_bytes / p, 2)
+    return "%s %s" % (s, size_name[i])
 
 
 def main(args):
     print('Number of arguments:', len(args), 'arguments.')
     print('Argument List:', str(args))
 
-    custom_paths = False;
+    custom_paths = False
     for arg in args:
         arg = str(arg).lower()
-        print('Evaluating arg: "'+arg+'".')
+        print('Evaluating arg: "' + arg + '".')
 
         if arg == '-p' or arg == '-paths' or arg == '-c' or arg == '-custom':
             custom_paths = True
 
     if custom_paths:
-        custom_paths_predict()
+        predict_batch_custom()
     else:
         prodi_gpu_predict()
 
+
 def prodi_gpu_predict():
+    print('\n_____________________________')
     print('Running Predictions.')
     use_oligo = True
     use_neuron = True
@@ -278,23 +267,14 @@ def prodi_gpu_predict():
     use_debug = False
     use_paper = True
     skip_predicted = True
-    n_jobs: int = 20
+    n_jobs: int = 25
 
-    # Paper Models trained for N4
-    model_source_path_oligo_paper = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/training/debug/paper-final_datagen/oligo-normalize4/'
-    model_source_path_neuron_paper = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/training/debug/paper-final_datagen/neuron-normalize4/'
-    model_source_path_glia = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN-glia/models/glia/smote/'
-
-    # .h5 dirs to be predicted for the paper
-    # source_dir_redo_paper_oligo = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/oligo_paper/'
-    # source_dir_redo_paper_neuron = '/prodi/bioinf/bioinfdata/work/omnisphero/CNN/final/neuron_paper/rosi/'
-
-    # .h5 dirs to be predicted for efsa or endpoints
-    source_dir_paper_oligo  = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/oligo_1/'
-    source_dir_paper_neuron = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/neuron_1/'
-    source_dir_glia = '/home/nilfoe/prodi/bioinfdata/work/Omnisphero/CNN/final/glia_01/'
+    if sys.platform == 'win32':
+        use_debug = True
 
     initial_sleep_time = 5
+    print(' ## Predicting Neurons: ' + str(use_neuron))
+    print(' ## Predicting Oligos: ' + str(use_oligo))
     print(' == Initial Sleeping: ' + str(initial_sleep_time) + ' seconds ... ===')
     time.sleep(initial_sleep_time)
 
@@ -303,36 +283,37 @@ def prodi_gpu_predict():
                       normalize_enum=4,
                       n_jobs=n_jobs,
                       skip_predicted=skip_predicted,
-                      gpu_index_string="1")
-
+                      gpu_index_string="0")
 
     if use_paper:
         if use_neuron:
-            predict_batch(model_source_path=model_source_path_neuron_paper, source_dir=source_dir_paper_neuron,
-                          normalize_enum=4,
-                          n_jobs=n_jobs,
-                          skip_predicted=skip_predicted,
-                          gpu_index_string="1")
+            for current_path in default_source_dirs_neuron:
+                predict_batch(model_source_path=default_model_source_path_neuron, source_dir=current_path,
+                              normalize_enum=4,
+                              n_jobs=n_jobs,
+                              skip_predicted=skip_predicted,
+                              gpu_index_string="0")
         if use_oligo:
-            predict_batch(model_source_path=model_source_path_oligo_paper, source_dir=source_dir_paper_oligo,
-                          normalize_enum=4,
-                          n_jobs=n_jobs,
-                          skip_predicted=skip_predicted,
-                          gpu_index_string="1")
-    if use_old:
-        if use_neuron:
-            predict_batch(model_source_path=model_source_path_neuron, source_dir=source_dir_neuron,
-                          normalize_enum=1,
-                          n_jobs=n_jobs,
-                          skip_predicted=skip_predicted,
-                          gpu_index_string="1")
-        if use_oligo:
-            predict_batch(model_source_path=model_source_path_oligo, source_dir=source_dir_oligo,
-                          normalize_enum=1,
-                          n_jobs=n_jobs,
-                          skip_predicted=skip_predicted,
-                          gpu_index_string="1")
+            for current_path in default_source_dirs_oligo:
+                predict_batch(model_source_path=default_model_source_path_oligo, source_dir=current_path,
+                              normalize_enum=4,
+                              n_jobs=n_jobs,
+                              skip_predicted=skip_predicted,
+                              gpu_index_string="0")
 
+    # if use_old:
+    #     if use_neuron:
+    #         predict_batch(model_source_path=model_source_path_neuron, source_dir=source_dir_neuron,
+    #                       normalize_enum=1,
+    #                       n_jobs=n_jobs,
+    #                       skip_predicted=skip_predicted,
+    #                       gpu_index_string="0")
+    #     if use_oligo:
+    #         predict_batch(model_source_path=model_source_path_oligo, source_dir=source_dir_oligo,
+    #                       normalize_enum=1,
+    #                       n_jobs=n_jobs,
+    #                       skip_predicted=skip_predicted,
+    #                       gpu_index_string="0")
 
     if use_debug:
         predict_batch(model_source_path=model_source_path_oligo_paper,

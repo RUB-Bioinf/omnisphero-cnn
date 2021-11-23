@@ -13,6 +13,9 @@ import pandas as pd
 from keras.models import load_model
 import getpass
 import socket
+import math
+import multiprocessing
+
 
 # Custom Module
 ###############
@@ -27,8 +30,8 @@ gpu_index_string = "3"
 default_model_source_path_oligo = '/prodi/bioinfdata/work/Omnisphero/CNN/diff/models/oligo/'
 default_model_source_path_neuron = '/prodi/bioinfdata/work/Omnisphero/CNN/diff/models/neuron/'
 
-default_source_dirs_oligo = ['/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/pred/oligo18/']
-default_source_dirs_neuron = ['/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/pred/neuron18/']
+default_source_dirs_oligo = ['/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/pred/oligo10/']
+default_source_dirs_neuron = ['/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/pred/neuron10/']
 
 # normalize_enum is an enum to determine normalisation as follows:
 # 0 = no normalisation
@@ -143,7 +146,7 @@ def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int =
                 ' ==[!! WARNING !!]==\nFailed to convert X_to_predict to np array and determine its shape. This is a fatal error! Experiment skipped.')
 
             if isinstance(e, MemoryError):
-                print('==[MEMORY ERROR]== Ran out of memory. This device has not enough RAM for the '+len(X_to_predict)+' files loaded!')
+                print('==[MEMORY ERROR]== Ran out of memory. This device has not enough RAM for the '+str(len(X_to_predict))+' files loaded!')
 
             if isinstance(X_to_predict, list):
                 print('Failed to convert the data to numpy.')
@@ -267,7 +270,7 @@ def prodi_gpu_predict():
     use_debug = False
     use_paper = True
     skip_predicted = True
-    n_jobs: int = 25
+    n_jobs: int = math.floor(int(multiprocessing.cpu_count()*1.15)+1)
 
     if sys.platform == 'win32':
         use_debug = True
@@ -275,6 +278,7 @@ def prodi_gpu_predict():
     initial_sleep_time = 5
     print(' ## Predicting Neurons: ' + str(use_neuron))
     print(' ## Predicting Oligos: ' + str(use_oligo))
+    print(' ## Multiprocessing on '+str(n_jobs)+' cores!')
     print(' == Initial Sleeping: ' + str(initial_sleep_time) + ' seconds ... ===')
     time.sleep(initial_sleep_time)
 

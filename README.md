@@ -10,7 +10,7 @@ Hence, our approach can be used for studying compound effects on neural differen
 
 ***
 
-https://doi.org/10.1002/cyto.a.24514
+Learn more: https://doi.org/10.1002/cyto.a.24514
 
 ***
 
@@ -34,12 +34,16 @@ https://doi.org/10.1002/cyto.a.24514
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/RUB-Bioinf/omnisphero-cnn.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/RUB-Bioinf/omnisphero-cnn/alerts/)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/RUB-Bioinf/omnisphero-cnn.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/RUB-Bioinf/omnisphero-cnn/context:python)
 
-***
-
 ## Overview
 
-This repo contains a few scripts to train, validate and save CNN models for the prediction of Neurons or/and Oligos on Omnisphero data.  
-It can predict in batches on unannotated data to construct new '.csv' files.
+This repository contains a few scripts to train, validate and save CNN models for the prediction of Neurons or / and Oligos on Neurospheres.
+Inputs are defined as RGB images from antibody stained tissue data captured via fluorescence microscopy.
+
+This pipeline can predict many datasets in a high throughput fashion.
+
+***
+
+![Example screenshot #1](/img/approach_overview.png?raw=true "Approach Overview")
 
 ## Usage
 
@@ -57,7 +61,7 @@ To predict data using a pre-trained model, use `predict_batch.py`.
 - Give the location of a saved model which should be used to predict on new data
 - Give the directory which contains unannotated data that should be labeled
 
-##### CLI Predicting
+#### CLI Predicting
 To make batch-prediction easy, you can use the built-in CLI.
 This function requires a pre-trained model and a batch of data, being located in a common root directory.
 

@@ -30,8 +30,8 @@ gpu_index_string = "3"
 default_model_source_path_oligo = '/prodi/bioinfdata/work/Omnisphero/CNN/diff/models/oligo/'
 default_model_source_path_neuron = '/prodi/bioinfdata/work/Omnisphero/CNN/diff/models/neuron/'
 
-default_source_dirs_oligo = ['/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/pred/oligo10/']
-default_source_dirs_neuron = ['/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/pred/neuron10/']
+default_source_dirs_oligo = ['/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/pred/oligo11/']
+default_source_dirs_neuron = ['/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/pred/neuron11/']
 
 # normalize_enum is an enum to determine normalisation as follows:
 # 0 = no normalisation

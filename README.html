@@ -118,23 +118,28 @@ body .markdown-body
   padding: 0;
 }
 
-.markdown-body .codehilitetable {
+.markdown-body .codehilitetable,
+.markdown-body .highlighttable {
   border: 0;
   border-spacing: 0;
 }
 
-.markdown-body .codehilitetable tr {
+.markdown-body .codehilitetable tr,
+.markdown-body .highlighttable {
   border: 0;
 }
 
 .markdown-body .codehilitetable pre,
-.markdown-body .codehilitetable div.codehilite {
+.markdown-body .codehilitetable div.codehilite,
+.markdown-body .highlighttable pre,
+.markdown-body .highlighttable div.highlight {
   margin: 0;
 }
 
 .markdown-body .linenos,
 .markdown-body .code,
-.markdown-body .codehilitetable td {
+.markdown-body .codehilitetable td,
+.markdown-body .highlighttable td {
   border: 0;
   padding: 0;
 }
@@ -517,11 +522,13 @@ body .markdown-body
   border: 0;
 }
 
-.markdown-body .codehilite {
+.markdown-body .codehilite,
+.markdown-body .highlight {
   margin-bottom: 16px;
 }
 
 .markdown-body .codehilite pre,
+.markdown-body .highlight pre,
 .markdown-body pre {
   padding: 16px;
   overflow: auto;
@@ -531,7 +538,8 @@ body .markdown-body
   border-radius: 3px;
 }
 
-.markdown-body .codehilite pre {
+.markdown-body .codehilite pre,
+.markdown-body .highlight pre {
   margin-bottom: 0;
   word-break: normal;
 }
@@ -993,85 +1001,123 @@ body .markdown-body
   }
 }
 </style><style>/*GitHub*/
-.codehilite {background-color:#fff;color:#333333;}
-.codehilite .hll {background-color:#ffffcc;}
-.codehilite .c{color:#999988;font-style:italic}
-.codehilite .err{color:#a61717;background-color:#e3d2d2}
-.codehilite .k{font-weight:bold}
-.codehilite .o{font-weight:bold}
-.codehilite .cm{color:#999988;font-style:italic}
-.codehilite .cp{color:#999999;font-weight:bold}
-.codehilite .c1{color:#999988;font-style:italic}
-.codehilite .cs{color:#999999;font-weight:bold;font-style:italic}
-.codehilite .gd{color:#000000;background-color:#ffdddd}
-.codehilite .ge{font-style:italic}
-.codehilite .gr{color:#aa0000}
-.codehilite .gh{color:#999999}
-.codehilite .gi{color:#000000;background-color:#ddffdd}
-.codehilite .go{color:#888888}
-.codehilite .gp{color:#555555}
-.codehilite .gs{font-weight:bold}
-.codehilite .gu{color:#800080;font-weight:bold}
-.codehilite .gt{color:#aa0000}
-.codehilite .kc{font-weight:bold}
-.codehilite .kd{font-weight:bold}
-.codehilite .kn{font-weight:bold}
-.codehilite .kp{font-weight:bold}
-.codehilite .kr{font-weight:bold}
-.codehilite .kt{color:#445588;font-weight:bold}
-.codehilite .m{color:#009999}
-.codehilite .s{color:#dd1144}
-.codehilite .n{color:#333333}
-.codehilite .na{color:teal}
-.codehilite .nb{color:#0086b3}
-.codehilite .nc{color:#445588;font-weight:bold}
-.codehilite .no{color:teal}
-.codehilite .ni{color:purple}
-.codehilite .ne{color:#990000;font-weight:bold}
-.codehilite .nf{color:#990000;font-weight:bold}
-.codehilite .nn{color:#555555}
-.codehilite .nt{color:navy}
-.codehilite .nv{color:teal}
-.codehilite .ow{font-weight:bold}
-.codehilite .w{color:#bbbbbb}
-.codehilite .mf{color:#009999}
-.codehilite .mh{color:#009999}
-.codehilite .mi{color:#009999}
-.codehilite .mo{color:#009999}
-.codehilite .sb{color:#dd1144}
-.codehilite .sc{color:#dd1144}
-.codehilite .sd{color:#dd1144}
-.codehilite .s2{color:#dd1144}
-.codehilite .se{color:#dd1144}
-.codehilite .sh{color:#dd1144}
-.codehilite .si{color:#dd1144}
-.codehilite .sx{color:#dd1144}
-.codehilite .sr{color:#009926}
-.codehilite .s1{color:#dd1144}
-.codehilite .ss{color:#990073}
-.codehilite .bp{color:#999999}
-.codehilite .vc{color:teal}
-.codehilite .vg{color:teal}
-.codehilite .vi{color:teal}
-.codehilite .il{color:#009999}
-.codehilite .gc{color:#999;background-color:#EAF2F5}
+.highlight {background-color:#fff;color:#333333;}
+.highlight .hll {background-color:#ffffcc;}
+.highlight .c{color:#999988;font-style:italic}
+.highlight .err{color:#a61717;background-color:#e3d2d2}
+.highlight .k{font-weight:bold}
+.highlight .o{font-weight:bold}
+.highlight .cm{color:#999988;font-style:italic}
+.highlight .cp{color:#999999;font-weight:bold}
+.highlight .c1{color:#999988;font-style:italic}
+.highlight .cs{color:#999999;font-weight:bold;font-style:italic}
+.highlight .gd{color:#000000;background-color:#ffdddd}
+.highlight .ge{font-style:italic}
+.highlight .gr{color:#aa0000}
+.highlight .gh{color:#999999}
+.highlight .gi{color:#000000;background-color:#ddffdd}
+.highlight .go{color:#888888}
+.highlight .gp{color:#555555}
+.highlight .gs{font-weight:bold}
+.highlight .gu{color:#800080;font-weight:bold}
+.highlight .gt{color:#aa0000}
+.highlight .kc{font-weight:bold}
+.highlight .kd{font-weight:bold}
+.highlight .kn{font-weight:bold}
+.highlight .kp{font-weight:bold}
+.highlight .kr{font-weight:bold}
+.highlight .kt{color:#445588;font-weight:bold}
+.highlight .m{color:#009999}
+.highlight .s{color:#dd1144}
+.highlight .n{color:#333333}
+.highlight .na{color:teal}
+.highlight .nb{color:#0086b3}
+.highlight .nc{color:#445588;font-weight:bold}
+.highlight .no{color:teal}
+.highlight .ni{color:purple}
+.highlight .ne{color:#990000;font-weight:bold}
+.highlight .nf{color:#990000;font-weight:bold}
+.highlight .nn{color:#555555}
+.highlight .nt{color:navy}
+.highlight .nv{color:teal}
+.highlight .ow{font-weight:bold}
+.highlight .w{color:#bbbbbb}
+.highlight .mf{color:#009999}
+.highlight .mh{color:#009999}
+.highlight .mi{color:#009999}
+.highlight .mo{color:#009999}
+.highlight .sb{color:#dd1144}
+.highlight .sc{color:#dd1144}
+.highlight .sd{color:#dd1144}
+.highlight .s2{color:#dd1144}
+.highlight .se{color:#dd1144}
+.highlight .sh{color:#dd1144}
+.highlight .si{color:#dd1144}
+.highlight .sx{color:#dd1144}
+.highlight .sr{color:#009926}
+.highlight .s1{color:#dd1144}
+.highlight .ss{color:#990073}
+.highlight .bp{color:#999999}
+.highlight .vc{color:teal}
+.highlight .vg{color:teal}
+.highlight .vi{color:teal}
+.highlight .il{color:#009999}
+.highlight .gc{color:#999;background-color:#EAF2F5}
 </style><title>README</title></head><body><article class="markdown-body"><h1 id="omnisphero-cnn">Omnisphero-CNN<a class="headerlink" href="#omnisphero-cnn" title="Permanent link"></a></h1>
+<p><em>Neurosphere cultures consisting of primary human neural stem/progenitor cells (hNPC) are used for studying the effects of substances on early neurodevelopmental processes in vitro.
+Differentiating hNPCs migrate and differentiate into radial glia, neurons, astrocytes, and oligodendrocytes upon plating on a suitable extracellular matrix and thus model processes of early neural development.
+In order to characterize alterations in hNPC development, it is thus an essential task to reliably identify the cell type of each migrated cell in the migration area of a neurosphere.
+To this end, we introduce and validate a deep learning approach for identifying and quantifying cell types in microscopic images of differentiated hNPC.
+As we demonstrate, our approach performs with high accuracy and is robust against typical potential confounders.
+We demonstrate that our deep learning approach reproduces the dose responses of well-established developmental neurotoxic compounds and controls, indicating its potential in medium or high throughput in vitro screening studies.
+Hence, our approach can be used for studying compound effects on neural differentiation processes in an automated and unbiased process.</em></p>
+<hr />
+<p><a href="https://doi.org/10.1002/cyto.a.24514">https://doi.org/10.1002/cyto.a.24514</a></p>
+<hr />
+<p><a href="https://github.com/RUB-Bioinf/omnisphero-cnn"><img alt="GitHub stars" src="https://img.shields.io/github/stars/RUB-Bioinf/omnisphero-cnn.svg?style=social&amp;label=Star" /></a> 
+<a href="https://github.com/RUB-Bioinf/omnisphero-cnn"><img alt="GitHub forks" src="https://img.shields.io/github/forks/RUB-Bioinf/omnisphero-cnn.svg?style=social&amp;label=Fork" /></a></p>
+<hr />
+<p><a href="/Z:/nilfoe/Python/omnisphero-cnn/docs/contribute.md"><img alt="Generic badge" src="https://img.shields.io/badge/contributions-welcome-brightgreen.svg" /></a>
+<img alt="Size" src="https://img.shields.io/github/repo-size/RUB-Bioinf/omnisphero-cnn?style=plastic" />
+<a href="https://github.com/RUB-Bioinf/omnisphero-cnn"><img alt="Language" src="https://img.shields.io/github/languages/top/RUB-Bioinf/omnisphero-cnn?style=plastic" /></a></p>
+<hr />
+<p><a href="https://twitter.com/intent/follow?screen_name=NilsFoer"><img alt="Follow us on Twitter" src="https://img.shields.io/twitter/follow/NilsFoer?style=social&amp;logo=twitter" /></a></p>
+<p><a href="https://twitter.com/intent/follow?screen_name=JoshuaButke"><img alt="Follow us on Twitter" src="https://img.shields.io/twitter/follow/JoshuaButke?style=social&amp;logo=twitter" /></a></p>
+<hr />
+<p><a href="https://lgtm.com/projects/g/RUB-Bioinf/omnisphero-cnn/alerts/"><img alt="Total alerts" src="https://img.shields.io/lgtm/alerts/g/RUB-Bioinf/omnisphero-cnn.svg?logo=lgtm&amp;logoWidth=18" /></a>
+<a href="https://lgtm.com/projects/g/RUB-Bioinf/omnisphero-cnn/context:python"><img alt="Language grade: Python" src="https://img.shields.io/lgtm/grade/python/g/RUB-Bioinf/omnisphero-cnn.svg?logo=lgtm&amp;logoWidth=18" /></a></p>
+<hr />
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link"></a></h2>
 <p>This repo contains a few scripts to train, validate and save CNN models for the prediction of Neurons or/and Oligos on Omnisphero data.<br />
 It can predict in batches on unannotated data to construct new &lsquo;.csv&rsquo; files.</p>
-<h4 id="train_modelpy">train_model.py<a class="headerlink" href="#train_modelpy" title="Permanent link"></a></h4>
+<h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link"></a></h2>
+<h4 id="training">Training<a class="headerlink" href="#training" title="Permanent link"></a></h4>
+<p>To train a new model, use <code>train_model.py</code>.</p>
 <ul>
 <li>Give a comma seperated path list for training data which needs to be completly annotated</li>
 <li>Give a comma seperated path list for validation data which ALSO needs to be completly annotated</li>
 <li>Define the CNN model as you wish</li>
 <li>Set saving paths for the trained model, its weights and plots</li>
 </ul>
-<h4 id="predict_batchpy">predict_batch.py<a class="headerlink" href="#predict_batchpy" title="Permanent link"></a></h4>
+<h4 id="predicting">Predicting<a class="headerlink" href="#predicting" title="Permanent link"></a></h4>
+<p>To predict data using a pre-trained model, use <code>predict_batch.py</code>.</p>
 <ul>
 <li>Give the location of a saved model which should be used to predict on new data</li>
 <li>Give the directory which contains unannotated data that should be labeled</li>
 </ul>
+<h5 id="cli-predicting">CLI Predicting<a class="headerlink" href="#cli-predicting" title="Permanent link"></a></h5>
+<p>To make batch-prediction easy, you can use the built-in CLI.
+This function requires a pre-trained model and a batch of data, being located in a common root directory.</p>
+<p>The CLI tool will prompt you to input all relevant variables and methods.
+Run the CLI interface using:</p>
+<p><code>$ python predict_batch_custom.py</code></p>
+<p>This is the recommended way of running predictions if you do not want to change the sourcecode.</p>
+<h2 id="example-data">Example Data<a class="headerlink" href="#example-data" title="Permanent link"></a></h2>
+<p>Find example data in the <em>Releases</em> section:
+<a href="https://github.com/RUB-Bioinf/omnisphero-cnn/releases/tag/1.0.0">https://github.com/RUB-Bioinf/omnisphero-cnn/releases/tag/1.0.0</a></p>
 <h2 id="required-libraries">Required libraries<a class="headerlink" href="#required-libraries" title="Permanent link"></a></h2>
-<p>Please aquire the following libraries on your own, as they are not included within this repository:</p>
+<p>To run this code, certain libraries are required.
+Please aquire the these on your own, as they are not included within this repository:</p>
 <ul>
 <li>numpy</li>
 <li>pandas</li>
@@ -1082,4 +1128,18 @@ It can predict in batches on unannotated data to construct new &lsquo;.csv&rsquo
 <li>imblearn</li>
 </ul>
 <h4 id="conda-environment">Conda Environment<a class="headerlink" href="#conda-environment" title="Permanent link"></a></h4>
-<p>Please look at the <code>/envs/</code> directory within this repository for the <i>Anaconda Environment</i> requirements file to recreate the environment used within this codebase.</p></article></body></html>
+<p>If you do not want to set up these libraries yourself, you can use <em>Anaconda</em>.
+Please look at the <code>/envs/</code> directory within this repository for the <em>Anaconda Environment</em> requirements file to recreate the environment used within this codebase.</p>
+<h2 id="cite">Cite<a class="headerlink" href="#cite" title="Permanent link"></a></h2>
+<p>You can cite this work using this <em>BibTeX</em> entry:</p>
+<div class="highlight"><pre>@article{forsterreliable,
+  title={Reliable Identification and Quantification of Neural Cells in Microscopic Images of Neurospheres},
+  author={F{\&quot;o}rster, Nils and Butke, Joshua and Ke{\ss}el, Hagen Eike and Bendt, Farina and Pahl, Melanie and Li, Lu and Fan, Xiaohui and Leung, Ping-chung and Klose, J{\&quot;o}rdis and Masjosthusmann, Stefan and others},
+  journal={Cytometry Part A},
+  publisher={Wiley Online Library}
+}
+</pre></div>
+
+<h2 id="contact">Contact<a class="headerlink" href="#contact" title="Permanent link"></a></h2>
+<p>Contact us on our homepage via:
+<a href="http://www.bioinf.rub.de/contact/index.html.en">http://www.bioinf.rub.de/contact/index.html.en</a></p></article></body></html>

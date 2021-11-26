@@ -1,5 +1,5 @@
-import os
-import sys
+import argparse
+
 
 def parse_args():
     """Parse input arguments.
@@ -8,7 +8,8 @@ def parse_args():
         args: argparser.Namespace class object
         An argparse.Namespace class object contains experimental hyper-parameters.
     """
-    parser = argparse.ArgumentParser(prog='Deep Attention MIL', description='Trains a deep attention-based multiple instance learning system')
+    parser = argparse.ArgumentParser(prog='Deep Attention MIL',
+                                     description='Trains a deep attention-based multiple instance learning system')
 
     # General
     parser.add_argument('-m', '--model', dest='model',
@@ -28,7 +29,7 @@ def parse_args():
                         help='choice of optimizer [string]',
                         default='adam', type=str)
 
-    #parser.add_argument('-d', '--dropout', dest='dropout',
+    # parser.add_argument('-d', '--dropout', dest='dropout',
     #                    help='dropout rate [float 0-1]',
     #                    default=0.5, type=float)
 
@@ -42,7 +43,6 @@ def parse_args():
 
     args = parser.parse_args()
     return args
-
 
 
 def main():

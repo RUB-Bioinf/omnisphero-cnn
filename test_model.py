@@ -1,14 +1,18 @@
 # IMPORTS
 #########
+import os
 import sys
 from datetime import datetime
 
+import numpy as np
 from keras.models import load_model
-from sklearn.metrics import *
+from matplotlib import pyplot as plt
+from sklearn.metrics import auc
+from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import roc_curve
 
 import misc_cnn
 import misc_omnisphero as misc
-from misc_omnisphero import *
 
 # PATHS & ARGS
 cuda_devices = "0"
@@ -108,7 +112,6 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
         f.close()
     except Exception as e:
         print(str(e))
-        pass
 
     try:
         # Predicting Test Data
@@ -231,8 +234,8 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
         pp = 0
         pn = 0
 
-        y_baseline_values = sigmoid_binary(y_test)
-        y_prediction_values = sigmoid_binary(y_pred_roc)
+        y_baseline_values = misc.sigmoid_binary(y_test)
+        y_prediction_values = misc.sigmoid_binary(y_pred_roc)
         for i in range(len(y_baseline_values)):
             current_baseline = y_baseline_values[i][0]
             current_prediction = y_prediction_values[i][0]
@@ -286,7 +289,6 @@ def test_cnn(model_path: str, test_data_path: str, normalize_enum: int, img_dpi:
         except Exception as e2:
             print('Failed to write the whole stack trace into the error file. Reason:')
             print(str(e2))
-            pass
 
         f.close()
 

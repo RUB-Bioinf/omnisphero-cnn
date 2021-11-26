@@ -6,21 +6,23 @@ Joshua Butke
 """
 # IMPORTS
 #########
-
-import sys
-from sys import platform
-import pandas as pd
-from keras.models import load_model
 import getpass
-import socket
 import math
 import multiprocessing
+import os
+import socket
+import sys
+import time
+from sys import platform
 
+import numpy as np
+import pandas as pd
+from keras.models import load_model
 
 # Custom Module
 ###############
 import misc_omnisphero as misc
-from misc_omnisphero import *
+from misc_cnn import gct
 from predict_batch_custom import predict_batch_custom
 
 gpu_index_string = "3"
@@ -135,10 +137,11 @@ def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int =
         print('Number of files loaded: ' + str(len(X_to_predict)) + '. Size in memory: ' + X_size)
 
         try:
-            # print('X_to_predict len: ' + str(len(X_to_predict)))
             X_to_predict = np.asarray(X_to_predict)
             temp2 = X_to_predict.shape
             temp = np.moveaxis(X_to_predict, 1, 3)
+            assert temp
+            assert temp2
             del temp
             del temp2
         except Exception as e:
@@ -146,7 +149,8 @@ def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int =
                 ' ==[!! WARNING !!]==\nFailed to convert X_to_predict to np array and determine its shape. This is a fatal error! Experiment skipped.')
 
             if isinstance(e, MemoryError):
-                print('==[MEMORY ERROR]== Ran out of memory. This device has not enough RAM for the '+str(len(X_to_predict))+' files loaded!')
+                print('==[MEMORY ERROR]== Ran out of memory. This device has not enough RAM for the ' + str(
+                    len(X_to_predict)) + ' files loaded!')
 
             if isinstance(X_to_predict, list):
                 print('Failed to convert the data to numpy.')
@@ -265,12 +269,11 @@ def prodi_gpu_predict():
     use_oligo = True
     use_neuron = True
     use_glia = False
-    use_old = False
 
     use_debug = False
     use_paper = True
     skip_predicted = True
-    n_jobs: int = math.floor(int(multiprocessing.cpu_count()*1.15)+1)
+    n_jobs: int = math.floor(int(multiprocessing.cpu_count() * 1.15) + 1)
 
     if sys.platform == 'win32':
         use_debug = True
@@ -278,11 +281,14 @@ def prodi_gpu_predict():
     initial_sleep_time = 5
     print(' ## Predicting Neurons: ' + str(use_neuron))
     print(' ## Predicting Oligos: ' + str(use_oligo))
-    print(' ## Multiprocessing on '+str(n_jobs)+' cores!')
+    print(' ## Multiprocessing on ' + str(n_jobs) + ' cores!')
     print(' == Initial Sleeping: ' + str(initial_sleep_time) + ' seconds ... ===')
     time.sleep(initial_sleep_time)
 
     if use_glia:
+        model_source_path_glia = 'dev/null'
+        source_dir_glia = 'dev/null'
+        # TODO Implement Glia Paths
         predict_batch(model_source_path=model_source_path_glia, source_dir=source_dir_glia,
                       normalize_enum=4,
                       n_jobs=n_jobs,
@@ -305,29 +311,15 @@ def prodi_gpu_predict():
                               skip_predicted=skip_predicted,
                               gpu_index_string="0")
 
-    # if use_old:
-    #     if use_neuron:
-    #         predict_batch(model_source_path=model_source_path_neuron, source_dir=source_dir_neuron,
-    #                       normalize_enum=1,
-    #                       n_jobs=n_jobs,
-    #                       skip_predicted=skip_predicted,
-    #                       gpu_index_string="0")
-    #     if use_oligo:
-    #         predict_batch(model_source_path=model_source_path_oligo, source_dir=source_dir_oligo,
-    #                       normalize_enum=1,
-    #                       n_jobs=n_jobs,
-    #                       skip_predicted=skip_predicted,
-    #                       gpu_index_string="0")
-
     if use_debug:
-        predict_batch(model_source_path=model_source_path_oligo_paper,
-                      source_dir=source_dir_oligo,
+        predict_batch(model_source_path=default_model_source_path_oligo,
+                      source_dir=default_source_dirs_oligo[0],
                       normalize_enum=4,
                       n_jobs=n_jobs,
                       skip_predicted=False,
                       gpu_index_string="1")
-        predict_batch(model_source_path=model_source_path_neuron_paper,
-                      source_dir=source_dir_neuron,
+        predict_batch(model_source_path=default_model_source_path_neuron,
+                      source_dir=default_source_dirs_neuron[0],
                       normalize_enum=4,
                       n_jobs=n_jobs,
                       skip_predicted=False,

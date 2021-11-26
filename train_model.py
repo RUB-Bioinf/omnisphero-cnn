@@ -8,28 +8,37 @@ Joshua Butke
 
 # IMPORTS
 #########
+import getpass
 import math
+import os
+import socket
 import sys
+import time
 
+import numpy as np
 from keras.backend import tensorflow_backend
-from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, CSVLogger, EarlyStopping
+from keras.callbacks import CSVLogger
+from keras.callbacks import EarlyStopping
+from keras.callbacks import ModelCheckpoint
+from keras.callbacks import ReduceLROnPlateau
 from keras.models import Model
 from keras.optimizers import SGD
 from keras.utils import multi_gpu_model
 from keras_preprocessing.image import ImageDataGenerator
+from matplotlib import pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.utils.class_weight import compute_class_weight
-from imblearn.under_sampling import NearMiss
-
-import getpass
-import socket
 
 # Custom Imports
 import misc_cnn
 import models
-from misc_omnisphero import *
-from scramblePaths import *
+from misc_omnisphero import create_smote_handler
+from misc_omnisphero import multiple_hdf5_loader
+from misc_omnisphero import save_random_samples
+from scramblePaths import scramble_paths
 from test_model import test_cnn
+
+# Assigning fields
 
 p_allow_growth: bool = False
 gpu_index_string = "0"
@@ -54,9 +63,6 @@ glia_path_val = [
 #
 # NEURONS AND OLIGOS
 #
-
-gpu_index_string = "0"
-# gpuIndexString = "0,1,2"
 
 #########################################################################################################
 # FINAL NERON & OLIGO PATHS
@@ -197,7 +203,7 @@ def train_model_scrambling(path_candidate_list: [str], out_path: str, test_data_
 
         print('Round: ' + str(n + 1) + '/' + str(len(scramble_results)) + ' -> ' + label)
         print('Writing results here: ' + out_path_current)
-        print('Timestamp: ', gct())
+        print('Timestamp: ', misc_cnn.gct())
         time.sleep(5)
 
         # AUGMENTATION
@@ -212,7 +218,7 @@ def train_model_scrambling(path_candidate_list: [str], out_path: str, test_data_
                     global_progress_max=scramble_size, label=label, data_gen=data_gen)
 
     print("Finished high throughput training of " + str(scramble_size) + " models!")
-    print(gct())
+    print(misc_cnn.gct())
 
 
 def train_model(training_path_list: [str], validation_path_list: [str], out_path: str, test_data_path: str,
@@ -302,7 +308,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
 
     # Logging the directories used for training
     f = open(out_path + 'training_data_used.txt', 'w+')
-    f.write('Current time: ' + gct() + '\n')
+    f.write('Current time: ' + misc_cnn.gct() + '\n')
     f.write('Training paths:\n')
     for i in range(len(training_path_list)):
         f.write(training_path_list[i] + '\n')
@@ -411,13 +417,13 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
         smote_out_file = out_path + 'smote_progress.txt'
         f = open(smote_out_file, 'w')
 
-        smote_start_time = gct(raw=True)
-        print('Starting SMOTE. Threads: ' + str(n_jobs) + '. ' + gct())
+        smote_start_time = misc_cnn.gct(raw=True)
+        print('Starting SMOTE. Threads: ' + str(n_jobs) + '. ' + misc_cnn.gct())
         try:
             X_smote = X.reshape(n_samples, n_x * n_y * n_z)
             y_smote = y.reshape(y.shape[0])
 
-            f.write('Starting time: ' + gct() + '\n')
+            f.write('Starting time: ' + misc_cnn.gct() + '\n')
             f.write('Params: ' + str(smote_params) + '\n')
             f.write('X shape: ' + str(X.shape) + '\n')
             f.write('y shape: ' + str(y.shape) + '\n')
@@ -428,8 +434,8 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
             X_smote, y_smote = smh.fit_sample(X_smote, y_smote)
             new_samples = X_smote.shape[0]
 
-            f.write('Finished time: ' + gct() + '\n')
-            f.write('Runtime: ' + get_time_diff(smote_start_time))
+            f.write('Finished time: ' + misc_cnn.gct() + '\n')
+            f.write('Runtime: ' + misc_cnn.get_time_diff(smote_start_time))
             f.write('X_smote shape: ' + str(X_smote.shape) + '\n')
             f.write('y_smote shape: ' + str(y_smote.shape) + '\n')
             f.write('New class 0 count: ' + str(np.count_nonzero(y_smote == 0)) + '\n')
@@ -452,7 +458,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
             new_samples = np.nan
             f.write('\nError! -> ' + smote_error_text)
 
-        print('Running smote took: ' + get_time_diff(smote_start_time))
+        print('Running smote took: ' + misc_cnn.get_time_diff(smote_start_time))
         try:
             save_smote_samples(X_smote, y_smote, n_samples, new_samples, augment_smote_path,
                                out_samples=k_neighbors + 5)
@@ -471,7 +477,8 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
         del y_smote
 
         print(
-            'Finished smote. Old sample size: ' + str(n_samples) + '. New Samples: ' + str(new_samples) + '. ' + gct())
+            'Finished smote. Old sample size: ' + str(n_samples) + '. New Samples: ' + str(
+                new_samples) + '. ' + misc_cnn.gct())
         print("Finished SMOTE. New data has shape: ")
         print("X-shape: " + str(X.shape))
         print("y-shape: " + str(y.shape))
@@ -601,7 +608,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
 
     f.write('Host: ' + str(getpass.getuser()) + '\n')
     f.write('User: ' + str(socket.gethostname()) + '\n')
-    f.write('Training start time: ' + gct() + '\n')
+    f.write('Training start time: ' + misc_cnn.gct() + '\n')
     f.write('Model: ' + str(model) + '\n')
     if label is not None:
         f.write('Label: ' + label + '\n')
@@ -678,7 +685,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
 
     log_out_path = out_path + 'training_log.csv'
     f = open(log_out_path, 'w+')
-    f.write(gct() + '\nEpoch;Accuracy;Loss;??;Validation Accuracy; Validation Loss\n')
+    f.write(misc_cnn.gct() + '\nEpoch;Accuracy;Loss;??;Validation Accuracy; Validation Loss\n')
     f.close()
 
     if example_sample_count > 0:
@@ -686,7 +693,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
             save_random_samples(X, y, count=example_sample_count, path=sample_path + os.sep + 'train' + os.sep)
             save_random_samples(X_val, y_val, count=example_sample_count, path=sample_path + os.sep + 'val' + os.sep)
         except Exception as e:
-            print(gct() + " Failed random samples! Error type:")
+            print(misc_cnn.gct() + " Failed random samples! Error type:")
             print(e)
 
     # CALLBACKS
@@ -734,7 +741,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     if label is not None:
         print('Reminder. Training for label: ' + label)
     print('Saving model here: ' + out_path)
-    print('Training started: ' + gct())
+    print('Training started: ' + misc_cnn.gct())
 
     # Checking if a data generator exists. If so, datagen mode will be used. If not, classic training.
     history_all = None
@@ -766,7 +773,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     # SAVING
     ########
     print("Saving history & plots to disc: " + out_path)
-    print('Timestamp: ', gct())
+    print('Timestamp: ', misc_cnn.gct())
 
     model.save(out_path + 'model.h5')
     model.save_weights(out_path + 'weights.h5')
@@ -776,7 +783,7 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
     try:
         plot_training_history(history_all=history_all, fig_path=fig_path, img_dpi=img_dpi)
     except Exception as e:
-        print(gct() + " Failed plot history! Error type:")
+        print(misc_cnn.gct() + " Failed plot history! Error type:")
         print(e)
         # TODO print stacktrace
 
@@ -803,24 +810,24 @@ def train_model(training_path_list: [str], validation_path_list: [str], out_path
                  n_jobs=n_jobs)
         print('Test finished')
     except Exception as e:
-        print(gct() + " Failed to execute CNN TEST! Error type:")
+        print(misc_cnn.gct() + " Failed to execute CNN TEST! Error type:")
         print(str(e))
         # TODO print stacktrace
 
         try:
             # Printing the error message as a file.
-            ef = open(out_path + os.sep + 'test_error.txt', 'w');
-            ef.write(gct() + '\n')
+            ef = open(out_path + os.sep + 'test_error.txt', 'w')
+            ef.write(misc_cnn.gct() + '\n')
             ef.write('Fatal error: ' + str(e))
             ef.close()
         except Exception as e2:
-            print(gct() + " Even failed to save the error to a file!!")
+            print(misc_cnn.gct() + " Even failed to save the error to a file!!")
             print(str(e2))
 
     # END OF Training
     #############
     print('Training done.')
-    print('Timestamp: ', gct())
+    print('Timestamp: ', misc_cnn.gct())
     print('Your results here: ' + out_path)
 
 
@@ -829,8 +836,6 @@ def save_smote_samples(X_smote, y_smote, n_samples, new_samples, augment_smote_p
     smote_indexes = list(range(out_samples))
     smote_indexes.extend(range(n_samples - out_samples, n_samples + out_samples))
     smote_indexes.extend(range(new_samples - out_samples * 2, new_samples))
-
-    class1_indices = np.where(y_smote == 1)[0]
 
     for i in range(len(smote_indexes)):
         current_index = smote_indexes[i]
@@ -947,10 +952,9 @@ def plot_training_history(history_all, fig_path, img_dpi=img_dpi_default):
 
 
 def get_model_memory_usage(batch_size, model):
-    import numpy as np
     try:
         from keras import backend as K
-    except:
+    except Exception as e:
         from tensorflow.keras import backend as K
 
     shapes_mem_count = 0
@@ -1003,7 +1007,7 @@ def decode_history_key(key: str) -> str:
     return key
 
 
-def main():
+def main(oligo_mode=True, neuron_mode=False, debug_mode=False):
     # AUGMENTATION
     data_gen = get_default_augmenter()
     n_jobs = 35
@@ -1011,15 +1015,10 @@ def main():
     out_path_base = out_path + 'paper-final_no-datagen' + os.sep
     out_path_oligo = out_path_base + 'oligo' + os.sep
     out_path_neuron = out_path_base + 'neuron' + os.sep
-
     out_path_oligo_debug = out_path_base + 'oligo_debug' + os.sep
 
     print('Sleeping....')
     time.sleep(5)
-
-    oligo_mode = True
-    neuron_mode = False
-    debug_mode = False
 
     if oligo_mode:
         train_model(
@@ -1027,8 +1026,18 @@ def main():
             validation_path_list=oligos_validation_ind1,
             test_data_path=oligos_test,
             data_gen=data_gen,
-            n_jobs=35,
+            n_jobs=n_jobs,
             out_path=out_path + 'paper-individual1-oligo' + os.sep,
+            gpu_index_string="0"
+        )
+    if neuron_mode:
+        train_model(
+            training_path_list=neuron_train,
+            validation_path_list=neuron_train,
+            test_data_path=oligos_test,
+            data_gen=data_gen,
+            n_jobs=n_jobs,
+            out_path=out_path + 'paper-individual1-neuron' + os.sep,
             gpu_index_string="0"
         )
 

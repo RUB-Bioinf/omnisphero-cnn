@@ -1,16 +1,14 @@
 import os
-import random
+
+import numpy as np
+from keras.engine.saving import load_model
 from matplotlib import pyplot as plt
-from sklearn.metrics import precision_recall_curve, auc, roc_curve
+from sklearn.metrics import auc
+from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import roc_curve
 
 import misc_cnn
 import misc_omnisphero as misc
-import numpy as np
-
-# default_model_source_path_oligo = '/prodi/bioinfdata/work/Omnisphero/CNN/diff/models/oligo/'
-# default_model_source_path_neuron = '/prodi/bioinfdata/work/Omnisphero/CNN/diff/models/neuron/'
-from keras.engine.saving import load_model
-
 from predict_batch import default_model_source_path_neuron
 from predict_batch import default_model_source_path_oligo
 

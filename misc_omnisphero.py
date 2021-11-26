@@ -15,7 +15,6 @@ PROJECT: Omnisphero CNN
 ########
 
 from sys import platform
-import io
 import os
 import random
 import re
@@ -325,7 +324,6 @@ def hdf5_loader_worker(filename: str, path: str, pattern: str, suffix_data: str,
             # TODO: Update h5 in conda
         else:
             raise Exception("Unknown h5 data file!")
-            pass
 
         key_list = list(f.keys())
         key_list.sort(key=lambda a: int(re.split(pattern, a)[1]))

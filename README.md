@@ -46,6 +46,7 @@ This pipeline can predict many datasets in a high throughput fashion.
 ![Example screenshot #1](/img/approach_overview.png?raw=true "Approach Overview")
 
 ## Usage
+Learn more [here](https://github.com/RUB-Bioinf/omnisphero-cnn/wiki/Usage).
 
 #### Training
 To train a new model, use `train_model.py`.
@@ -73,8 +74,7 @@ Run the CLI interface using:
 This is the recommended way of running predictions if you do not want to change the sourcecode.
 
 ## Example Data
-Find example data in the *Releases* section:
-https://github.com/RUB-Bioinf/omnisphero-cnn/releases/tag/1.0.0
+Find information on example data [here](https://github.com/RUB-Bioinf/omnisphero-cnn/wiki/Example-Data).
 
 ## Required libraries
 To run this code, certain libraries are required.

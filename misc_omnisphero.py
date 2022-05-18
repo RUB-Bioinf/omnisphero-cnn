@@ -86,6 +86,8 @@ def hdf5_loader(path: str, pattern: str = '_[A-Z][0-9]{2}_', suffix_data: str = 
     os.chdir(path)
     directory = os.fsencode(path)
 
+    # Waking up the linux drives, in case we have stale file handles
+    # Big thanks to "SAS15" drive, if you didn't exist, I would not have to do this
     if platform == "linux" or platform == "linux2":
         os.system('ls ' + str(path) + ' > /dev/null')
 

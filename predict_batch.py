@@ -2,8 +2,9 @@
 
 Nils Foerster
 Joshua Butke
-2019 - 2020
+2019 - 2022
 """
+
 # IMPORTS
 #########
 import getpass
@@ -13,6 +14,7 @@ import os
 import socket
 import sys
 import time
+import traceback
 from sys import platform
 
 import numpy as np
@@ -32,8 +34,8 @@ gpu_index_string = "3"
 default_model_source_path_oligo = '/prodi/bioinfdata/work/Omnisphero/CNN/diff/models/oligo/'
 default_model_source_path_neuron = '/prodi/bioinfdata/work/Omnisphero/CNN/diff/models/neuron/'
 
-default_source_dirs_oligo = ['/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/pred/oligo11/']
-default_source_dirs_neuron = ['/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/pred/neuron11/']
+default_source_dirs_oligo = ['/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/pred/oligo15/']
+default_source_dirs_neuron = ['/prodi/bioinfdata/work/Omnisphero/CNN/diff/data/pred/neuron15/']
 
 # normalize_enum is an enum to determine normalisation as follows:
 # 0 = no normalisation
@@ -50,6 +52,8 @@ def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int =
     print('Loading model: ' + model_source_path)
     print('Data to predict: ' + source_dir)
     print(' == #### ===')
+    assert os.path.exists(model_source_path)
+    assert os.path.exists(source_dir)
     time.sleep(4)
 
     f = open(source_dir + os.sep + 'protocoll.txt', 'w')
@@ -134,31 +138,35 @@ def predict_batch(model_source_path: str, source_dir: str, normalize_enum: int =
         for i in range(len(X_to_predict)):
             X_size = X_size + X_to_predict[i].nbytes
         X_size = convert_size(X_size)
-        print('Number of files loaded: ' + str(len(X_to_predict)) + '. Size in memory: ' + X_size)
+        print('Number of nuclei tiles loaded: ' + str(len(X_to_predict)) + '. Size in memory: ' + X_size)
 
         try:
             X_to_predict = np.asarray(X_to_predict)
             temp2 = X_to_predict.shape
             temp = np.moveaxis(X_to_predict, 1, 3)
-            assert temp
-            assert temp2
+            assert temp is not None
+            assert temp2 is not None
             del temp
             del temp2
         except Exception as e:
-            print(
-                ' ==[!! WARNING !!]==\nFailed to convert X_to_predict to np array and determine its shape. This is a fatal error! Experiment skipped.')
+            print('\n' +
+                  ' ==[!! FATAL ERROR !!]==\n' +
+                  'Failed to convert X_to_predict to np array and determine its shape. This is a fatal error! Experiment skipped.')
 
             if isinstance(e, MemoryError):
                 print('==[MEMORY ERROR]== Ran out of memory. This device has not enough RAM for the ' + str(
-                    len(X_to_predict)) + ' files loaded!')
+                    len(X_to_predict)) + ' instances!')
 
             if isinstance(X_to_predict, list):
                 print('Failed to convert the data to numpy.')
             else:
                 print('The dada was converted to numpy, but the shape could not be determined.')
 
-            print('Exception: ' + str(e))
-            del X_to_predict
+            print('Caused by: ' + str(type(e).__name__) + ': "' + str(e) + '"\n')
+            ex_type, ex, tb = sys.exc_info()
+            traceback.print_tb(tb)
+
+            del X_to_predict, ex_type, ex, tb
             continue
 
         # process data
@@ -282,6 +290,7 @@ def prodi_gpu_predict():
     print(' ## Predicting Neurons: ' + str(use_neuron))
     print(' ## Predicting Oligos: ' + str(use_oligo))
     print(' ## Multiprocessing on ' + str(n_jobs) + ' cores!')
+    print('Python Version: '+str(sys.version_info))
     print(' == Initial Sleeping: ' + str(initial_sleep_time) + ' seconds ... ===')
     time.sleep(initial_sleep_time)
 
